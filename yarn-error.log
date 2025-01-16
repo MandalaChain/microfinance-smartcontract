@@ -1,0 +1,38 @@
+Arguments: 
+  C:\Users\Angga Danar\AppData\Roaming\nvm\v16.20.0\node.exe C:\Program Files (x86)\Yarn\bin\yarn.js add @openzeppelin-contract@latest
+
+PATH: 
+  C:\Users\Angga Danar\bin;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\local\bin;C:\Program Files\Git\usr\bin;C:\Program Files\Git\usr\bin;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Users\Angga Danar\bin;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Users\Angga Danar\AppData\Local\Programs\Python\Python310\Scripts;C:\Users\Angga Danar\AppData\Local\Programs\Python\Python310;C:\ffmpeg\bin;C:\Python310;C:\Python39\Scripts;C:\Python39;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0;C:\Windows\System32\OpenSSH;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0;C:\WINDOWS\System32\OpenSSH;C:\ProgramData\chocolatey\bin;C:\MinGW\bin;C:\Program Files\Git\cmd;C:\Program Files\dotnet;C:\Program Files\Docker\Docker\resources\bin;C:\ProgramData\DockerDesktop\version-bin;C:\Users\Angga Danar\AppData\Roaming\nvm;C:\Program Files\nodejs;C:\Program Files (x86)\Yarn\bin;C:\python3.10\Scripts;C:\python3.10;C:\python\Scripts;C:\python\Scripts;C:\Users\Angga Danar\.cargo\bin;C:\Users\Angga Danar\AppData\Local\Microsoft\WindowsApps;C:\Users\Angga Danar\.dotnet\tools;C:\Users\Angga Danar\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\Angga Danar\AppData\Local\Programs\IPFS Desktop\resources\app.asar.unpacked\src\ipfs-on-path\scripts\bin-win;C:\Program Files\heroku\bin;C:\Users\Angga Danar\.cargo\bin;C:\Users\Angga Danar\.dotnet\tools;C:\Program Files\Java\jdk-19\bin;C:\Program Files\besu\bin;C:\Program Files\prometheus-2.37.1.windows-amd64;C:\Users\Angga Danar\AppData\Roaming\npm;C:\Users\Angga Danar\AppData\Local\Yarn\bin;C:\protoc\bin;C:\Program Files\Geth;C:\msys64\mingw64\bin;C:\Program Files\Git\usr\bin\vendor_perl;C:\Program Files\Git\usr\bin\core_perl
+
+Yarn version: 
+  1.22.19
+
+Node version: 
+  16.20.0
+
+Platform: 
+  win32 x64
+
+Trace: 
+  Error: https://registry.yarnpkg.com/@openzeppelin-contract: Request "https://registry.yarnpkg.com/@openzeppelin-contract" returned a 405
+      at Request.params.callback [as _callback] (C:\Program Files (x86)\Yarn\lib\cli.js:66154:18)
+      at Request.self.callback (C:\Program Files (x86)\Yarn\lib\cli.js:140890:22)
+      at Request.emit (node:events:513:28)
+      at Request.<anonymous> (C:\Program Files (x86)\Yarn\lib\cli.js:141862:10)
+      at Request.emit (node:events:513:28)
+      at IncomingMessage.<anonymous> (C:\Program Files (x86)\Yarn\lib\cli.js:141784:12)
+      at Object.onceWrapper (node:events:627:28)
+      at IncomingMessage.emit (node:events:525:35)
+      at endReadableNT (node:internal/streams/readable:1358:12)
+      at processTicksAndRejections (node:internal/process/task_queues:83:21)
+
+npm manifest: 
+  {
+    "name": "hardhat-project"
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile

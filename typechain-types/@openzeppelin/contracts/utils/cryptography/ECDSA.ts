@@ -16,13 +16,13 @@ import type {
   TypedListener,
 } from "../../../../common";
 
-export interface IERC20ErrorsInterface extends Interface {}
+export interface ECDSAInterface extends Interface {}
 
-export interface IERC20Errors extends BaseContract {
-  connect(runner?: ContractRunner | null): IERC20Errors;
+export interface ECDSA extends BaseContract {
+  connect(runner?: ContractRunner | null): ECDSA;
   waitForDeployment(): Promise<this>;
 
-  interface: IERC20ErrorsInterface;
+  interface: ECDSAInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,

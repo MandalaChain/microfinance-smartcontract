@@ -22,6 +22,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ECDSA__factory>;
     getContractFactory(
+      name: "Delegation",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Delegation__factory>;
+    getContractFactory(
+      name: "Registration",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Registration__factory>;
+    getContractFactory(
       name: "DataSharing",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.DataSharing__factory>;
@@ -37,6 +45,16 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.ECDSA>;
     getContractAt(
+      name: "Delegation",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Delegation>;
+    getContractAt(
+      name: "Registration",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Registration>;
+    getContractAt(
       name: "DataSharing",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -51,6 +69,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ECDSA>;
     deployContract(
+      name: "Delegation",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Delegation>;
+    deployContract(
+      name: "Registration",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Registration>;
+    deployContract(
       name: "DataSharing",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.DataSharing>;
@@ -65,6 +91,16 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ECDSA>;
+    deployContract(
+      name: "Delegation",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Delegation>;
+    deployContract(
+      name: "Registration",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Registration>;
     deployContract(
       name: "DataSharing",
       args: any[],

@@ -7,6 +7,7 @@ abstract contract Registration is Ownable {
     error AddressNotEligible();
     error NotEligible();
     error AlreadyExist();
+    error AlreadyRemoved();
 
     address private immutable _platform;
 
@@ -15,13 +16,17 @@ abstract contract Registration is Ownable {
     // mapping from platform that debtors is registered
     mapping(address => bool) private _creditors;
 
+    event DebtorAdded(bytes32 indexed nik, address indexed debtorAddress);
+    event CreditorAdded(address indexed creditorAddress);
+
     constructor(address _setPlatform) {
         _platform = _setPlatform;
     }
 
     // check platform is eligible
-    function _isPlatform() internal view {
+    modifier onlyPlatform() {
         if (msg.sender != _platform) revert AddressNotEligible();
+        _;
     }
 
     // check address is eligible as debtor
@@ -30,17 +35,30 @@ abstract contract Registration is Ownable {
     }
 
     // add Debtor
-    function _addDebtor(bytes32 _nik, address _addressCustomer) internal {
-        _isPlatform();
+    function _addDebtor(
+        bytes32 _nik,
+        address _addressCustomer
+    ) internal onlyPlatform {
         if (_getDebtor(_nik) != address(0)) revert AlreadyExist();
         _debtors[_nik] = _addressCustomer;
+        emit DebtorAdded(_nik, _addressCustomer);
     }
 
     // add creditor
-    function _addCreditor(address _addressCreditor) internal {
-        _isPlatform();
-        if (_getCreditor(_addressCreditor)) revert AlreadyExist();
+    function _addCreditor(address _addressCreditor) internal onlyPlatform {
+        if (_creditors[_addressCreditor]) revert AlreadyExist();
         _creditors[_addressCreditor] = true;
+        emit CreditorAdded(_addressCreditor);
+    }
+
+    function _removeCreditor(address _addressCreditor) internal onlyPlatform {
+        if (!_creditors[_addressCreditor]) revert AlreadyRemoved();
+        _creditors[_addressCreditor] = false;
+    }
+
+    function _removeDebtor(bytes32 _nik) internal onlyPlatform {
+        if (_debtors[_nik] == address(0)) revert AlreadyRemoved();
+        delete _debtors[_nik];
     }
 
     // return address Debtor by nik
@@ -49,9 +67,9 @@ abstract contract Registration is Ownable {
     }
 
     // return eligibility debtor
-    function _getCreditor(
-        address _addressCreditor
-    ) internal view returns (bool) {
-        return _creditors[_addressCreditor];
-    }
+    // function _getCreditor(
+    //     address _addressCreditor
+    // ) internal view returns (bool) {
+    //     return _creditors[_addressCreditor];
+    // }
 }

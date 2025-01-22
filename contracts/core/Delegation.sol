@@ -31,6 +31,7 @@ abstract contract Delegation is Registration {
     struct DebtorInfo {
         mapping(address => Status) creditorStatus;
         address[] creditors; // List of creditors associated with the debtor
+        // !NOTE: add metadata
     }
 
     // Mapping for debtor information (address(NIK) -> DebtorInfo)
@@ -59,6 +60,13 @@ abstract contract Delegation is Registration {
         Status status
     );
 
+    function _getCustomerStoraget(
+        bytes32 _nik
+    ) private view returns (DebtorInfo storage) {
+        address _nikAddress = _getDebtor(_nik);
+        return _debtorInfo[_nikAddress];
+    }
+
     function _checkCompliance(
         bytes32 _nik,
         address _consumer,
@@ -70,7 +78,7 @@ abstract contract Delegation is Registration {
         _isCreditor(_consumer);
         _isCreditor(_provider);
 
-        DebtorInfo storage _info = _debtorInfo[_nikAddress];
+        DebtorInfo storage _info = _getCustomerStoraget(_nik);
         if (_info.creditorStatus[_provider] != Status.APPROVED) {
             revert ProviderNotEligible();
         }
@@ -138,8 +146,7 @@ abstract contract Delegation is Registration {
 
     // Add a creditor for a debtor
     function _addCreditorForDebtor(bytes32 _nik, address _creditor) internal {
-        address _nikAddress = _getDebtor(_nik);
-        DebtorInfo storage _info = _debtorInfo[_nikAddress];
+        DebtorInfo storage _info = _getCustomerStoraget(_nik);
         if (_info.creditorStatus[_creditor] == Status.APPROVED)
             revert AlreadyExist();
         _info.creditorStatus[_creditor] = Status.APPROVED;
@@ -151,8 +158,7 @@ abstract contract Delegation is Registration {
     function _getDebtorStatuses(
         bytes32 _nik
     ) internal view returns (address[] memory, Status[] memory) {
-        address _nikAddress = _getDebtor(_nik);
-        DebtorInfo storage info = _debtorInfo[_nikAddress];
+        DebtorInfo storage info = _getCustomerStoraget(_nik);
         uint256 count = info.creditors.length;
         address[] memory creditorsList = new address[](count);
         Status[] memory statusesList = new Status[](count);
@@ -169,8 +175,7 @@ abstract contract Delegation is Registration {
         bytes32 _nik,
         Status _status
     ) internal view returns (address[] memory) {
-        address _nikAddress = _getDebtor(_nik);
-        DebtorInfo storage _info = _debtorInfo[_nikAddress];
+        DebtorInfo storage _info = _getCustomerStoraget(_nik);
         uint256 _count = 0;
         for (uint256 i = 0; i < _info.creditors.length; i++) {
             if (_info.creditorStatus[_info.creditors[i]] == _status) {

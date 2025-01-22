@@ -9,7 +9,7 @@ abstract contract Registration is Ownable {
     error AlreadyExist();
     error AlreadyRemoved();
 
-    address private immutable _platform;
+    address private _platform;
 
     // mapping from platform that customer is registered from NIK
     mapping(bytes32 => address) private _debtors;
@@ -18,10 +18,6 @@ abstract contract Registration is Ownable {
 
     event DebtorAdded(bytes32 indexed nik, address indexed debtorAddress);
     event CreditorAdded(address indexed creditorAddress);
-
-    constructor(address _setPlatform) {
-        _platform = _setPlatform;
-    }
 
     // check platform is eligible
     modifier onlyPlatform() {
@@ -34,7 +30,12 @@ abstract contract Registration is Ownable {
         if (!_creditors[_addressCreditor]) revert NotEligible();
     }
 
+    function _setPlatform(address _setNewPlatform) internal onlyOwner {
+        _platform = _setNewPlatform;
+    }
+
     // add Debtor
+    // !Note: metadata is must added
     function _addDebtor(
         bytes32 _nik,
         address _addressCustomer
@@ -45,6 +46,7 @@ abstract contract Registration is Ownable {
     }
 
     // add creditor
+    // !Note: metadata is must added
     function _addCreditor(address _addressCreditor) internal onlyPlatform {
         if (_creditors[_addressCreditor]) revert AlreadyExist();
         _creditors[_addressCreditor] = true;

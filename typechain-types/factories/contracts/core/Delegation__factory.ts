@@ -103,12 +103,6 @@ const _abi = [
         name: "timestamp",
         type: "uint256",
       },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "metadata",
-        type: "string",
-      },
     ],
     name: "ApproveDelegate",
     type: "event",

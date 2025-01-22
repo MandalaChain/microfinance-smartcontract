@@ -29,6 +29,10 @@ declare module "hardhat/types/runtime" {
       name: "Registration",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Registration__factory>;
+    getContractFactory(
+      name: "DataSharingPlatform",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.DataSharingPlatform__factory>;
 
     getContractAt(
       name: "Ownable",
@@ -50,6 +54,11 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.Registration>;
+    getContractAt(
+      name: "DataSharingPlatform",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.DataSharingPlatform>;
 
     deployContract(
       name: "Ownable",
@@ -67,6 +76,10 @@ declare module "hardhat/types/runtime" {
       name: "Registration",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Registration>;
+    deployContract(
+      name: "DataSharingPlatform",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.DataSharingPlatform>;
 
     deployContract(
       name: "Ownable",
@@ -88,6 +101,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Registration>;
+    deployContract(
+      name: "DataSharingPlatform",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.DataSharingPlatform>;
 
     // default types
     getContractFactory(

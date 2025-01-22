@@ -23,9 +23,22 @@ import type {
   TypedContractMethod,
 } from "../../common";
 
-export interface DelegationInterface extends Interface {
+export interface DataSharingPlatformInterface extends Interface {
   getFunction(
-    nameOrSignature: "owner" | "renounceOwnership" | "transferOwnership"
+    nameOrSignature:
+      | "addCreditor"
+      | "addDebtor"
+      | "addDebtorToCreditor"
+      | "delegate"
+      | "getActiveCreditorsByStatus"
+      | "getDebtor"
+      | "getDebtorDataActiveCreditors"
+      | "owner"
+      | "removeCreditor"
+      | "removeDebtor"
+      | "renounceOwnership"
+      | "requestDelegation"
+      | "transferOwnership"
   ): FunctionFragment;
 
   getEvent(
@@ -38,19 +51,90 @@ export interface DelegationInterface extends Interface {
       | "StatusUpdated"
   ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "addCreditor",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "addDebtor",
+    values: [BytesLike, AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "addDebtorToCreditor",
+    values: [BytesLike, AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "delegate",
+    values: [BytesLike, AddressLike, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getActiveCreditorsByStatus",
+    values: [BytesLike, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getDebtor",
+    values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getDebtorDataActiveCreditors",
+    values: [BytesLike]
+  ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "removeCreditor",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "removeDebtor",
+    values: [BytesLike]
+  ): string;
   encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "requestDelegation",
+    values: [BytesLike, AddressLike, string]
   ): string;
   encodeFunctionData(
     functionFragment: "transferOwnership",
     values: [AddressLike]
   ): string;
 
+  decodeFunctionResult(
+    functionFragment: "addCreditor",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "addDebtor", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "addDebtorToCreditor",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "delegate", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getActiveCreditorsByStatus",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "getDebtor", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getDebtorDataActiveCreditors",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "removeCreditor",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "removeDebtor",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "renounceOwnership",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "requestDelegation",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -168,11 +252,11 @@ export namespace StatusUpdatedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export interface Delegation extends BaseContract {
-  connect(runner?: ContractRunner | null): Delegation;
+export interface DataSharingPlatform extends BaseContract {
+  connect(runner?: ContractRunner | null): DataSharingPlatform;
   waitForDeployment(): Promise<this>;
 
-  interface: DelegationInterface;
+  interface: DataSharingPlatformInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -211,9 +295,61 @@ export interface Delegation extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  addCreditor: TypedContractMethod<
+    [creditorAddress: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  addDebtor: TypedContractMethod<
+    [nik: BytesLike, debtorAddress: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  addDebtorToCreditor: TypedContractMethod<
+    [nik: BytesLike, creditor: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  delegate: TypedContractMethod<
+    [_nik: BytesLike, _consumer: AddressLike, _status: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  getActiveCreditorsByStatus: TypedContractMethod<
+    [_nik: BytesLike, _status: BigNumberish],
+    [string[]],
+    "view"
+  >;
+
+  getDebtor: TypedContractMethod<[nik: BytesLike], [string], "view">;
+
+  getDebtorDataActiveCreditors: TypedContractMethod<
+    [_nik: BytesLike],
+    [[string[], bigint[]]],
+    "view"
+  >;
+
   owner: TypedContractMethod<[], [string], "view">;
 
+  removeCreditor: TypedContractMethod<
+    [creditorAddress: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  removeDebtor: TypedContractMethod<[nik: BytesLike], [void], "nonpayable">;
+
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
+
+  requestDelegation: TypedContractMethod<
+    [_nik: BytesLike, _creditor: AddressLike, _metadata: string],
+    [void],
+    "nonpayable"
+  >;
 
   transferOwnership: TypedContractMethod<
     [newOwner: AddressLike],
@@ -226,11 +362,61 @@ export interface Delegation extends BaseContract {
   ): T;
 
   getFunction(
+    nameOrSignature: "addCreditor"
+  ): TypedContractMethod<[creditorAddress: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "addDebtor"
+  ): TypedContractMethod<
+    [nik: BytesLike, debtorAddress: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "addDebtorToCreditor"
+  ): TypedContractMethod<
+    [nik: BytesLike, creditor: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "delegate"
+  ): TypedContractMethod<
+    [_nik: BytesLike, _consumer: AddressLike, _status: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "getActiveCreditorsByStatus"
+  ): TypedContractMethod<
+    [_nik: BytesLike, _status: BigNumberish],
+    [string[]],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "getDebtor"
+  ): TypedContractMethod<[nik: BytesLike], [string], "view">;
+  getFunction(
+    nameOrSignature: "getDebtorDataActiveCreditors"
+  ): TypedContractMethod<[_nik: BytesLike], [[string[], bigint[]]], "view">;
+  getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "removeCreditor"
+  ): TypedContractMethod<[creditorAddress: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "removeDebtor"
+  ): TypedContractMethod<[nik: BytesLike], [void], "nonpayable">;
+  getFunction(
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "requestDelegation"
+  ): TypedContractMethod<
+    [_nik: BytesLike, _creditor: AddressLike, _metadata: string],
+    [void],
+    "nonpayable"
+  >;
   getFunction(
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;

@@ -50,8 +50,7 @@ abstract contract Delegation is Registration {
         address indexed consumer,
         address provider,
         bytes32 nik,
-        uint256 timestamp,
-        string metadata
+        uint256 timestamp
     );
 
     event StatusUpdated(
@@ -95,7 +94,12 @@ abstract contract Delegation is Registration {
         address _provider,
         string calldata _metadata
     ) internal {
-        address _nikAddress = _checkCompliance(_nik, msg.sender, _provider, Function.REQUEST);
+        address _nikAddress = _checkCompliance(
+            _nik,
+            msg.sender,
+            _provider,
+            Function.REQUEST
+        );
 
         uint256 _timestamp = block.timestamp;
         _request[msg.sender][_provider] = Request({
@@ -115,27 +119,21 @@ abstract contract Delegation is Registration {
     function _delegate(
         bytes32 _nik,
         address _consumer,
-        Status _status,
-        string calldata _metadata
+        Status _status
     ) internal {
-        address _nikAddress = _checkCompliance(_nik, _consumer, msg.sender, Function.DELEGATE);
-
-        uint256 _timestamp = block.timestamp;
-        _request[_consumer][msg.sender] = Request({
-            status: _status,
-            nik: _nik,
-            timestamp: _timestamp,
-            metadata: _metadata
-        });
-        _debtorInfo[_nikAddress].creditorStatus[_consumer] = _status;
-
-        emit ApproveDelegate(
+        address _nikAddress = _checkCompliance(
+            _nik,
             _consumer,
             msg.sender,
-            _nik,
-            _timestamp,
-            _metadata
+            Function.DELEGATE
         );
+
+        uint256 _timestamp = block.timestamp;
+        _request[_consumer][msg.sender].status = _status;
+        _request[_consumer][msg.sender].timestamp = _timestamp;
+        _debtorInfo[_nikAddress].creditorStatus[_consumer] = _status;
+
+        emit ApproveDelegate(_consumer, msg.sender, _nik, _timestamp);
     }
 
     // Add a creditor for a debtor
@@ -148,6 +146,23 @@ abstract contract Delegation is Registration {
         _info.creditors.push(_creditor);
 
         emit StatusUpdated(_nik, _creditor, Status.APPROVED);
+    }
+
+    function _getDebtorStatuses(
+        bytes32 _nik
+    ) internal view returns (address[] memory, Status[] memory) {
+        address _nikAddress = _getDebtor(_nik);
+        DebtorInfo storage info = _debtorInfo[_nikAddress];
+        uint256 count = info.creditors.length;
+        address[] memory creditorsList = new address[](count);
+        Status[] memory statusesList = new Status[](count);
+
+        for (uint256 i = 0; i < count; i++) {
+            address creditor = info.creditors[i];
+            creditorsList[i] = creditor;
+            statusesList[i] = info.creditorStatus[creditor];
+        }
+        return (creditorsList, statusesList);
     }
 
     function _getActiveCreditorsByStatus(

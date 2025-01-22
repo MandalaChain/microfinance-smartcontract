@@ -14,14 +14,6 @@ async function main() {
   await contract.deployed();
 
   console.log("Contract deployed to:", contract.address);
-
-  console.log("Setup and verify document types...");
-  await contract.approveDocType("LEVY");
-  await contract.approveDocType("E-CERTIFICATE");
-
-  const [owner] = await ethers.getSigners();
-  console.log("Setup address for development for address", owner.address);
-  await contract.setApproveClient(owner.address, true);
   console.log("Done");
 }
 

@@ -2,8 +2,7 @@
 import CollectionConfig from "./CollectionConfig";
 
 const ContractArguments = [
-    CollectionConfig.tokenName,
-    CollectionConfig.tokenSymbol
+    CollectionConfig.platformAddress
 ] as const;
 
 export default ContractArguments;

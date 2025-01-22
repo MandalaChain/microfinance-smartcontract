@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {Delegation} from "./core//Delegation.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract DataSharingPlatform is Delegation {
+contract DataSharing is Delegation {
     constructor(address _setNewPlatform) Ownable(msg.sender) {
         _setPlatform(_setNewPlatform);
     }

@@ -6,8 +6,7 @@ const CollectionConfig: CollectionConfigInterface = {
     testnet: Networks.niskala,
     mainnet: Networks.arbitrumOne,
     contractName: "DataSharing",
-    tokenName: "Data Asset Digital",
-    tokenSymbol: "DAD",
+    platformAddress: "0x618D64266bFE4Ec30c05D26cc906480E21ccbFba", // account test
     contractAddress: "0x1E8E93ff202e046D46E2d7fe9b0a8471F07e945D",
     //marketplaceIdentifier: "market-place-identifier",
     //marketplaceConfig: Marketpalce.openSea

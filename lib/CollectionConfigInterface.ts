@@ -5,8 +5,7 @@ export default interface CollectionConfigInterface {
     testnet: NetworkConfigInterface;
     mainnet: NetworkConfigInterface;
     contractName: string;
-    tokenName: string;
-    tokenSymbol: string;
+    platformAddress: string;
     contractAddress: string|null;
     //marketplaceIdentifier: string;
     //marketplaceConfig: MarketplaceConfigInterface;

@@ -26,7 +26,8 @@ import type {
 export interface DataSharingInterface extends Interface {
   getFunction(
     nameOrSignature:
-      | "addCreditor"
+      | "addCreditor(address)"
+      | "addCreditor(address,string,string,string,string,string)"
       | "addDebtor"
       | "addDebtorToCreditor"
       | "delegate"
@@ -37,7 +38,8 @@ export interface DataSharingInterface extends Interface {
       | "removeCreditor"
       | "removeDebtor"
       | "renounceOwnership"
-      | "requestDelegation"
+      | "requestDelegation(bytes32,address)"
+      | "requestDelegation(bytes32,address,string,string,string,string,string,string)"
       | "transferOwnership"
   ): FunctionFragment;
 
@@ -45,15 +47,22 @@ export interface DataSharingInterface extends Interface {
     nameOrSignatureOrTopic:
       | "ApproveDelegate"
       | "CreditorAdded"
+      | "CreditorAddedWithMetadata"
       | "DebtorAdded"
+      | "DebtorAddedWithMetadata"
+      | "DelegationRequestedMetadata"
       | "OwnershipTransferred"
       | "RequestCreated"
       | "StatusUpdated"
   ): EventFragment;
 
   encodeFunctionData(
-    functionFragment: "addCreditor",
+    functionFragment: "addCreditor(address)",
     values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "addCreditor(address,string,string,string,string,string)",
+    values: [AddressLike, string, string, string, string, string]
   ): string;
   encodeFunctionData(
     functionFragment: "addDebtor",
@@ -61,7 +70,17 @@ export interface DataSharingInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "addDebtorToCreditor",
-    values: [BytesLike, AddressLike]
+    values: [
+      BytesLike,
+      AddressLike,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "delegate",
@@ -93,8 +112,21 @@ export interface DataSharingInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "requestDelegation",
-    values: [BytesLike, AddressLike, string]
+    functionFragment: "requestDelegation(bytes32,address)",
+    values: [BytesLike, AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "requestDelegation(bytes32,address,string,string,string,string,string,string)",
+    values: [
+      BytesLike,
+      AddressLike,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "transferOwnership",
@@ -102,7 +134,11 @@ export interface DataSharingInterface extends Interface {
   ): string;
 
   decodeFunctionResult(
-    functionFragment: "addCreditor",
+    functionFragment: "addCreditor(address)",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "addCreditor(address,string,string,string,string,string)",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "addDebtor", data: BytesLike): Result;
@@ -134,7 +170,11 @@ export interface DataSharingInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "requestDelegation",
+    functionFragment: "requestDelegation(bytes32,address)",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "requestDelegation(bytes32,address,string,string,string,string,string,string)",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -180,12 +220,114 @@ export namespace CreditorAddedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace CreditorAddedWithMetadataEvent {
+  export type InputTuple = [
+    creditorAddress: AddressLike,
+    institutionCode: string,
+    institutionName: string,
+    approvalDate: string,
+    signerName: string,
+    signerPosition: string
+  ];
+  export type OutputTuple = [
+    creditorAddress: string,
+    institutionCode: string,
+    institutionName: string,
+    approvalDate: string,
+    signerName: string,
+    signerPosition: string
+  ];
+  export interface OutputObject {
+    creditorAddress: string;
+    institutionCode: string;
+    institutionName: string;
+    approvalDate: string;
+    signerName: string;
+    signerPosition: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace DebtorAddedEvent {
   export type InputTuple = [nik: BytesLike, debtorAddress: AddressLike];
   export type OutputTuple = [nik: string, debtorAddress: string];
   export interface OutputObject {
     nik: string;
     debtorAddress: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace DebtorAddedWithMetadataEvent {
+  export type InputTuple = [
+    nik: BytesLike,
+    name: string,
+    creditorCode: string,
+    creditorName: string,
+    applicationDate: string,
+    approvalDate: string,
+    urlKTP: string,
+    urlApproval: string
+  ];
+  export type OutputTuple = [
+    nik: string,
+    name: string,
+    creditorCode: string,
+    creditorName: string,
+    applicationDate: string,
+    approvalDate: string,
+    urlKTP: string,
+    urlApproval: string
+  ];
+  export interface OutputObject {
+    nik: string;
+    name: string;
+    creditorCode: string;
+    creditorName: string;
+    applicationDate: string;
+    approvalDate: string;
+    urlKTP: string;
+    urlApproval: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace DelegationRequestedMetadataEvent {
+  export type InputTuple = [
+    nik: BytesLike,
+    requestId: string,
+    nikDebtor: string,
+    creditorCode: string,
+    transactionId: string,
+    referenceId: string,
+    requestDate: string
+  ];
+  export type OutputTuple = [
+    nik: string,
+    requestId: string,
+    nikDebtor: string,
+    creditorCode: string,
+    transactionId: string,
+    referenceId: string,
+    requestDate: string
+  ];
+  export interface OutputObject {
+    nik: string;
+    requestId: string;
+    nikDebtor: string;
+    creditorCode: string;
+    transactionId: string;
+    referenceId: string;
+    requestDate: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -211,22 +353,19 @@ export namespace RequestCreatedEvent {
     consumer: AddressLike,
     provider: AddressLike,
     nik: BytesLike,
-    timestamp: BigNumberish,
-    metadata: string
+    timestamp: BigNumberish
   ];
   export type OutputTuple = [
     consumer: string,
     provider: string,
     nik: string,
-    timestamp: bigint,
-    metadata: string
+    timestamp: bigint
   ];
   export interface OutputObject {
     consumer: string;
     provider: string;
     nik: string;
     timestamp: bigint;
-    metadata: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -295,8 +434,21 @@ export interface DataSharing extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  addCreditor: TypedContractMethod<
+  "addCreditor(address)": TypedContractMethod<
     [creditorAddress: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  "addCreditor(address,string,string,string,string,string)": TypedContractMethod<
+    [
+      creditorAddress: AddressLike,
+      institutionCode: string,
+      institutionName: string,
+      approvalDate: string,
+      signerName: string,
+      signerPosition: string
+    ],
     [void],
     "nonpayable"
   >;
@@ -308,7 +460,17 @@ export interface DataSharing extends BaseContract {
   >;
 
   addDebtorToCreditor: TypedContractMethod<
-    [nik: BytesLike, creditor: AddressLike],
+    [
+      nik: BytesLike,
+      creditor: AddressLike,
+      name: string,
+      creditorCode: string,
+      creditorName: string,
+      applicationDate: string,
+      approvalDate: string,
+      urlKTP: string,
+      urlApproval: string
+    ],
     [void],
     "nonpayable"
   >;
@@ -345,8 +507,23 @@ export interface DataSharing extends BaseContract {
 
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
 
-  requestDelegation: TypedContractMethod<
-    [_nik: BytesLike, _creditor: AddressLike, _metadata: string],
+  "requestDelegation(bytes32,address)": TypedContractMethod<
+    [_nik: BytesLike, _creditor: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  "requestDelegation(bytes32,address,string,string,string,string,string,string)": TypedContractMethod<
+    [
+      nik: BytesLike,
+      creditor: AddressLike,
+      requestId: string,
+      nikDebtor: string,
+      creditorCode: string,
+      transactionId: string,
+      referenceId: string,
+      requestDate: string
+    ],
     [void],
     "nonpayable"
   >;
@@ -362,8 +539,22 @@ export interface DataSharing extends BaseContract {
   ): T;
 
   getFunction(
-    nameOrSignature: "addCreditor"
+    nameOrSignature: "addCreditor(address)"
   ): TypedContractMethod<[creditorAddress: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "addCreditor(address,string,string,string,string,string)"
+  ): TypedContractMethod<
+    [
+      creditorAddress: AddressLike,
+      institutionCode: string,
+      institutionName: string,
+      approvalDate: string,
+      signerName: string,
+      signerPosition: string
+    ],
+    [void],
+    "nonpayable"
+  >;
   getFunction(
     nameOrSignature: "addDebtor"
   ): TypedContractMethod<
@@ -374,7 +565,17 @@ export interface DataSharing extends BaseContract {
   getFunction(
     nameOrSignature: "addDebtorToCreditor"
   ): TypedContractMethod<
-    [nik: BytesLike, creditor: AddressLike],
+    [
+      nik: BytesLike,
+      creditor: AddressLike,
+      name: string,
+      creditorCode: string,
+      creditorName: string,
+      applicationDate: string,
+      approvalDate: string,
+      urlKTP: string,
+      urlApproval: string
+    ],
     [void],
     "nonpayable"
   >;
@@ -411,9 +612,25 @@ export interface DataSharing extends BaseContract {
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "requestDelegation"
+    nameOrSignature: "requestDelegation(bytes32,address)"
   ): TypedContractMethod<
-    [_nik: BytesLike, _creditor: AddressLike, _metadata: string],
+    [_nik: BytesLike, _creditor: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "requestDelegation(bytes32,address,string,string,string,string,string,string)"
+  ): TypedContractMethod<
+    [
+      nik: BytesLike,
+      creditor: AddressLike,
+      requestId: string,
+      nikDebtor: string,
+      creditorCode: string,
+      transactionId: string,
+      referenceId: string,
+      requestDate: string
+    ],
     [void],
     "nonpayable"
   >;
@@ -436,11 +653,32 @@ export interface DataSharing extends BaseContract {
     CreditorAddedEvent.OutputObject
   >;
   getEvent(
+    key: "CreditorAddedWithMetadata"
+  ): TypedContractEvent<
+    CreditorAddedWithMetadataEvent.InputTuple,
+    CreditorAddedWithMetadataEvent.OutputTuple,
+    CreditorAddedWithMetadataEvent.OutputObject
+  >;
+  getEvent(
     key: "DebtorAdded"
   ): TypedContractEvent<
     DebtorAddedEvent.InputTuple,
     DebtorAddedEvent.OutputTuple,
     DebtorAddedEvent.OutputObject
+  >;
+  getEvent(
+    key: "DebtorAddedWithMetadata"
+  ): TypedContractEvent<
+    DebtorAddedWithMetadataEvent.InputTuple,
+    DebtorAddedWithMetadataEvent.OutputTuple,
+    DebtorAddedWithMetadataEvent.OutputObject
+  >;
+  getEvent(
+    key: "DelegationRequestedMetadata"
+  ): TypedContractEvent<
+    DelegationRequestedMetadataEvent.InputTuple,
+    DelegationRequestedMetadataEvent.OutputTuple,
+    DelegationRequestedMetadataEvent.OutputObject
   >;
   getEvent(
     key: "OwnershipTransferred"
@@ -487,6 +725,17 @@ export interface DataSharing extends BaseContract {
       CreditorAddedEvent.OutputObject
     >;
 
+    "CreditorAddedWithMetadata(address,string,string,string,string,string)": TypedContractEvent<
+      CreditorAddedWithMetadataEvent.InputTuple,
+      CreditorAddedWithMetadataEvent.OutputTuple,
+      CreditorAddedWithMetadataEvent.OutputObject
+    >;
+    CreditorAddedWithMetadata: TypedContractEvent<
+      CreditorAddedWithMetadataEvent.InputTuple,
+      CreditorAddedWithMetadataEvent.OutputTuple,
+      CreditorAddedWithMetadataEvent.OutputObject
+    >;
+
     "DebtorAdded(bytes32,address)": TypedContractEvent<
       DebtorAddedEvent.InputTuple,
       DebtorAddedEvent.OutputTuple,
@@ -496,6 +745,28 @@ export interface DataSharing extends BaseContract {
       DebtorAddedEvent.InputTuple,
       DebtorAddedEvent.OutputTuple,
       DebtorAddedEvent.OutputObject
+    >;
+
+    "DebtorAddedWithMetadata(bytes32,string,string,string,string,string,string,string)": TypedContractEvent<
+      DebtorAddedWithMetadataEvent.InputTuple,
+      DebtorAddedWithMetadataEvent.OutputTuple,
+      DebtorAddedWithMetadataEvent.OutputObject
+    >;
+    DebtorAddedWithMetadata: TypedContractEvent<
+      DebtorAddedWithMetadataEvent.InputTuple,
+      DebtorAddedWithMetadataEvent.OutputTuple,
+      DebtorAddedWithMetadataEvent.OutputObject
+    >;
+
+    "DelegationRequestedMetadata(bytes32,string,string,string,string,string,string)": TypedContractEvent<
+      DelegationRequestedMetadataEvent.InputTuple,
+      DelegationRequestedMetadataEvent.OutputTuple,
+      DelegationRequestedMetadataEvent.OutputObject
+    >;
+    DelegationRequestedMetadata: TypedContractEvent<
+      DelegationRequestedMetadataEvent.InputTuple,
+      DelegationRequestedMetadataEvent.OutputTuple,
+      DelegationRequestedMetadataEvent.OutputObject
     >;
 
     "OwnershipTransferred(address,address)": TypedContractEvent<
@@ -509,7 +780,7 @@ export interface DataSharing extends BaseContract {
       OwnershipTransferredEvent.OutputObject
     >;
 
-    "RequestCreated(address,address,bytes32,uint256,string)": TypedContractEvent<
+    "RequestCreated(address,address,bytes32,uint256)": TypedContractEvent<
       RequestCreatedEvent.InputTuple,
       RequestCreatedEvent.OutputTuple,
       RequestCreatedEvent.OutputObject

@@ -127,22 +127,19 @@ export namespace RequestCreatedEvent {
     consumer: AddressLike,
     provider: AddressLike,
     nik: BytesLike,
-    timestamp: BigNumberish,
-    metadata: string
+    timestamp: BigNumberish
   ];
   export type OutputTuple = [
     consumer: string,
     provider: string,
     nik: string,
-    timestamp: bigint,
-    metadata: string
+    timestamp: bigint
   ];
   export interface OutputObject {
     consumer: string;
     provider: string;
     nik: string;
     timestamp: bigint;
-    metadata: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -323,7 +320,7 @@ export interface Delegation extends BaseContract {
       OwnershipTransferredEvent.OutputObject
     >;
 
-    "RequestCreated(address,address,bytes32,uint256,string)": TypedContractEvent<
+    "RequestCreated(address,address,bytes32,uint256)": TypedContractEvent<
       RequestCreatedEvent.InputTuple,
       RequestCreatedEvent.OutputTuple,
       RequestCreatedEvent.OutputObject

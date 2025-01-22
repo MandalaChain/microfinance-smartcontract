@@ -25,7 +25,6 @@ abstract contract Delegation is Registration {
         Status status;
         bytes32 nik;
         uint256 timestamp;
-        string metadata;
     }
 
     struct DebtorInfo {
@@ -43,8 +42,7 @@ abstract contract Delegation is Registration {
         address indexed consumer,
         address provider,
         bytes32 nik,
-        uint256 timestamp,
-        string metadata
+        uint256 timestamp
     );
 
     event ApproveDelegate(
@@ -99,8 +97,7 @@ abstract contract Delegation is Registration {
     // Request delegation from one creditor to another
     function _requestDelegation(
         bytes32 _nik,
-        address _provider,
-        string calldata _metadata
+        address _provider
     ) internal {
         address _nikAddress = _checkCompliance(
             _nik,
@@ -113,15 +110,14 @@ abstract contract Delegation is Registration {
         _request[msg.sender][_provider] = Request({
             status: Status.PENDING,
             nik: _nik,
-            timestamp: _timestamp,
-            metadata: _metadata
+            timestamp: _timestamp
         });
         if (_debtorInfo[_nikAddress].creditorStatus[msg.sender] == Status(0)) {
             _debtorInfo[_nikAddress].creditors.push(msg.sender);
         }
         _debtorInfo[_nikAddress].creditorStatus[msg.sender] = Status.PENDING;
 
-        emit RequestCreated(msg.sender, _provider, _nik, _timestamp, _metadata);
+        emit RequestCreated(msg.sender, _provider, _nik, _timestamp);
     }
 
     function _delegate(

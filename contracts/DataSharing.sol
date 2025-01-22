@@ -10,6 +10,40 @@ contract DataSharing is Delegation {
     }
 
     // ======================================================================
+    //                              EVENTS
+    // ======================================================================
+    event CreditorAddedWithMetadata(
+        address indexed creditorAddress,
+        string institutionCode,
+        string institutionName,
+        string approvalDate,
+        string signerName,
+        string signerPosition
+    );
+
+    event DebtorAddedWithMetadata(
+        bytes32 indexed nik,
+        string name,
+        string creditorCode,
+        string creditorName,
+        string applicationDate,
+        string approvalDate,
+        string urlKTP,
+        string urlApproval
+    );
+
+    event DelegationRequestedMetadata(
+        bytes32 indexed nik,
+        string requestId,
+        string nikDebtor,
+        string creditorCode,
+        string transactionId,
+        string referenceId,
+        string requestDate
+    );
+
+
+    // ======================================================================
     //                              REGISTRATION
     // ======================================================================
     function addDebtor(bytes32 nik, address debtorAddress) external {
@@ -18,6 +52,25 @@ contract DataSharing is Delegation {
 
     function addCreditor(address creditorAddress) external {
         _addCreditor(creditorAddress);
+    }
+
+    function addCreditor(
+        address creditorAddress,
+        string memory institutionCode,
+        string memory institutionName,
+        string memory approvalDate,
+        string memory signerName,
+        string memory signerPosition
+    ) external {
+        _addCreditor(creditorAddress);
+        emit CreditorAddedWithMetadata(
+            creditorAddress,
+            institutionCode,
+            institutionName,
+            approvalDate,
+            signerName,
+            signerPosition
+        );
     }
 
     function removeCreditor(address creditorAddress) external {
@@ -37,10 +90,31 @@ contract DataSharing is Delegation {
     // ======================================================================
     function requestDelegation(
         bytes32 _nik,
-        address _creditor,
-        string calldata _metadata
+        address _creditor
     ) external {
-        _requestDelegation(_nik, _creditor, _metadata);
+        _requestDelegation(_nik, _creditor);
+    }
+
+    function requestDelegation(
+        bytes32 nik,
+        address creditor,
+        string memory requestId,
+        string memory nikDebtor,
+        string memory creditorCode,
+        string memory transactionId,
+        string memory referenceId,
+        string memory requestDate
+    ) external {
+        _requestDelegation(nik, creditor);
+        emit DelegationRequestedMetadata(
+            nik,
+            requestId,
+            nikDebtor,
+            creditorCode,
+            transactionId,
+            referenceId,
+            requestDate
+        );
     }
 
     function delegate(
@@ -53,9 +127,26 @@ contract DataSharing is Delegation {
 
     function addDebtorToCreditor(
         bytes32 nik,
-        address creditor
+        address creditor,
+        string memory name,
+        string memory creditorCode,
+        string memory creditorName,
+        string memory applicationDate,
+        string memory approvalDate,
+        string memory urlKTP,
+        string memory urlApproval
     ) external onlyPlatform {
         _addCreditorForDebtor(nik, creditor);
+        emit DebtorAddedWithMetadata(
+            nik,
+            name,
+            creditorCode,
+            creditorName,
+            applicationDate,
+            approvalDate,
+            urlKTP,
+            urlApproval
+        );
     }
 
     function getDebtorDataActiveCreditors(

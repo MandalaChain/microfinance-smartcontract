@@ -30,6 +30,7 @@ export interface DelegationInterface extends Interface {
 
   getEvent(
     nameOrSignatureOrTopic:
+      | "ApproveDelegate"
       | "CreditorAdded"
       | "DebtorAdded"
       | "OwnershipTransferred"
@@ -56,6 +57,34 @@ export interface DelegationInterface extends Interface {
     functionFragment: "transferOwnership",
     data: BytesLike
   ): Result;
+}
+
+export namespace ApproveDelegateEvent {
+  export type InputTuple = [
+    consumer: AddressLike,
+    provider: AddressLike,
+    nik: BytesLike,
+    timestamp: BigNumberish,
+    metadata: string
+  ];
+  export type OutputTuple = [
+    consumer: string,
+    provider: string,
+    nik: string,
+    timestamp: bigint,
+    metadata: string
+  ];
+  export interface OutputObject {
+    consumer: string;
+    provider: string;
+    nik: string;
+    timestamp: bigint;
+    metadata: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export namespace CreditorAddedEvent {
@@ -210,6 +239,13 @@ export interface Delegation extends BaseContract {
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
 
   getEvent(
+    key: "ApproveDelegate"
+  ): TypedContractEvent<
+    ApproveDelegateEvent.InputTuple,
+    ApproveDelegateEvent.OutputTuple,
+    ApproveDelegateEvent.OutputObject
+  >;
+  getEvent(
     key: "CreditorAdded"
   ): TypedContractEvent<
     CreditorAddedEvent.InputTuple,
@@ -246,6 +282,17 @@ export interface Delegation extends BaseContract {
   >;
 
   filters: {
+    "ApproveDelegate(address,address,bytes32,uint256,string)": TypedContractEvent<
+      ApproveDelegateEvent.InputTuple,
+      ApproveDelegateEvent.OutputTuple,
+      ApproveDelegateEvent.OutputObject
+    >;
+    ApproveDelegate: TypedContractEvent<
+      ApproveDelegateEvent.InputTuple,
+      ApproveDelegateEvent.OutputTuple,
+      ApproveDelegateEvent.OutputObject
+    >;
+
     "CreditorAdded(address)": TypedContractEvent<
       CreditorAddedEvent.InputTuple,
       CreditorAddedEvent.OutputTuple,

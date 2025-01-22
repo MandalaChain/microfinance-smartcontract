@@ -14,5 +14,3 @@ export type { Delegation } from "./contracts/core/Delegation";
 export { Delegation__factory } from "./factories/contracts/core/Delegation__factory";
 export type { Registration } from "./contracts/core/Registration";
 export { Registration__factory } from "./factories/contracts/core/Registration__factory";
-export type { DataSharing } from "./contracts/DataSharing";
-export { DataSharing__factory } from "./factories/contracts/DataSharing__factory";

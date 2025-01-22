@@ -26,6 +26,11 @@ const _abi = [
   },
   {
     inputs: [],
+    name: "InvalidStatusApproveRequest",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "NikNeedRegistered",
     type: "error",
   },
@@ -70,6 +75,43 @@ const _abi = [
     inputs: [],
     name: "RequestNotFound",
     type: "error",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "address",
+        name: "consumer",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "address",
+        name: "provider",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "nik",
+        type: "bytes32",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "timestamp",
+        type: "uint256",
+      },
+      {
+        indexed: false,
+        internalType: "string",
+        name: "metadata",
+        type: "string",
+      },
+    ],
+    name: "ApproveDelegate",
+    type: "event",
   },
   {
     anonymous: false,

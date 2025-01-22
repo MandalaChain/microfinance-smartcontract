@@ -3,4 +3,3 @@
 /* eslint-disable */
 import type * as core from "./core";
 export type { core };
-export type { DataSharing } from "./DataSharing";

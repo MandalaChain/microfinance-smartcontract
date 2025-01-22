@@ -2,4 +2,3 @@
 /* tslint:disable */
 /* eslint-disable */
 export * as core from "./core";
-export { DataSharing__factory } from "./DataSharing__factory";

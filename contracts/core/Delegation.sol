@@ -8,6 +8,12 @@ abstract contract Delegation is Registration {
     error RequestNotFound();
     error RequestAlreadyExist();
     error ProviderNotEligible();
+    error InvalidStatusApproveRequest();
+
+    enum Function {
+        DELEGATE,
+        REQUEST
+    }
 
     enum Status {
         APPROVED,
@@ -27,13 +33,20 @@ abstract contract Delegation is Registration {
         address[] creditors; // List of creditors associated with the debtor
     }
 
-    // Mapping for debtor information (NIK -> DebtorInfo)
-    mapping(bytes32 => DebtorInfo) private _debtorInfo;
-
+    // Mapping for debtor information (address(NIK) -> DebtorInfo)
+    mapping(address => DebtorInfo) private _debtorInfo;
     // Mapping for delegation requests (Consumer -> Provider -> Request)
     mapping(address => mapping(address => Request)) private _request;
 
     event RequestCreated(
+        address indexed consumer,
+        address provider,
+        bytes32 nik,
+        uint256 timestamp,
+        string metadata
+    );
+
+    event ApproveDelegate(
         address indexed consumer,
         address provider,
         bytes32 nik,
@@ -47,25 +60,42 @@ abstract contract Delegation is Registration {
         Status status
     );
 
+    function _checkCompliance(
+        bytes32 _nik,
+        address _consumer,
+        address _provider,
+        Function _function
+    ) private view returns (address) {
+        address _nikAddress = _getDebtor(_nik);
+        if (_nikAddress == address(0)) revert NikNeedRegistered();
+        _isCreditor(_consumer);
+        _isCreditor(_provider);
+
+        DebtorInfo storage _info = _debtorInfo[_nikAddress];
+        if (_info.creditorStatus[_provider] != Status.APPROVED) {
+            revert ProviderNotEligible();
+        }
+        Request memory _req = _request[_consumer][_provider];
+
+        if (_function == Function.REQUEST) {
+            if (_req.status == Status.PENDING) revert RequestAlreadyExist();
+        }
+
+        if (_function == Function.DELEGATE) {
+            if (_req.status != Status.PENDING) {
+                revert InvalidStatusApproveRequest();
+            }
+        }
+        return _nikAddress;
+    }
+
     // Request delegation from one creditor to another
     function _requestDelegation(
         bytes32 _nik,
         address _provider,
         string calldata _metadata
     ) internal {
-        if (_getDebtor(_nik) == address(0)) revert NikNeedRegistered();
-        _isCreditor(msg.sender);
-        _isCreditor(_provider);
-
-        DebtorInfo storage info = _debtorInfo[_nik];
-        if (info.creditorStatus[msg.sender] == Status(0)) {
-            info.creditors.push(msg.sender);
-        }
-        info.creditorStatus[msg.sender] = Status.PENDING;
-
-
-        Request storage _req = _request[msg.sender][_provider];
-        if (_req.status == Status.PENDING) revert RequestAlreadyExist();
+        address _nikAddress = _checkCompliance(_nik, msg.sender, _provider, Function.REQUEST);
 
         uint256 _timestamp = block.timestamp;
         _request[msg.sender][_provider] = Request({
@@ -74,13 +104,44 @@ abstract contract Delegation is Registration {
             timestamp: _timestamp,
             metadata: _metadata
         });
+        if (_debtorInfo[_nikAddress].creditorStatus[msg.sender] == Status(0)) {
+            _debtorInfo[_nikAddress].creditors.push(msg.sender);
+        }
+        _debtorInfo[_nikAddress].creditorStatus[msg.sender] = Status.PENDING;
 
         emit RequestCreated(msg.sender, _provider, _nik, _timestamp, _metadata);
     }
 
+    function _delegate(
+        bytes32 _nik,
+        address _consumer,
+        Status _status,
+        string calldata _metadata
+    ) internal {
+        address _nikAddress = _checkCompliance(_nik, _consumer, msg.sender, Function.DELEGATE);
+
+        uint256 _timestamp = block.timestamp;
+        _request[_consumer][msg.sender] = Request({
+            status: _status,
+            nik: _nik,
+            timestamp: _timestamp,
+            metadata: _metadata
+        });
+        _debtorInfo[_nikAddress].creditorStatus[_consumer] = _status;
+
+        emit ApproveDelegate(
+            _consumer,
+            msg.sender,
+            _nik,
+            _timestamp,
+            _metadata
+        );
+    }
+
     // Add a creditor for a debtor
     function _addCreditorForDebtor(bytes32 _nik, address _creditor) internal {
-        DebtorInfo storage _info = _debtorInfo[_nik];
+        address _nikAddress = _getDebtor(_nik);
+        DebtorInfo storage _info = _debtorInfo[_nikAddress];
         if (_info.creditorStatus[_creditor] == Status.APPROVED)
             revert AlreadyExist();
         _info.creditorStatus[_creditor] = Status.APPROVED;
@@ -89,28 +150,12 @@ abstract contract Delegation is Registration {
         emit StatusUpdated(_nik, _creditor, Status.APPROVED);
     }
 
-    // Get all creditor statuses for a debtor
-    function _getActiveCreditors(
-        bytes32 _nik
-    ) internal view returns (address[] memory, Status[] memory) {
-        DebtorInfo storage _info = _debtorInfo[_nik];
-        uint256 _count = _info.creditors.length;
-        address[] memory _creditorsList = new address[](_count);
-        Status[] memory _statusesList = new Status[](_count);
-
-        for (uint256 i = 0; i < _count; i++) {
-            address creditor = _info.creditors[i];
-            _creditorsList[i] = creditor;
-            _statusesList[i] = _info.creditorStatus[creditor];
-        }
-        return (_creditorsList, _statusesList);
-    }
-
     function _getActiveCreditorsByStatus(
         bytes32 _nik,
         Status _status
     ) internal view returns (address[] memory) {
-        DebtorInfo storage _info = _debtorInfo[_nik];
+        address _nikAddress = _getDebtor(_nik);
+        DebtorInfo storage _info = _debtorInfo[_nikAddress];
         uint256 _count = 0;
         for (uint256 i = 0; i < _info.creditors.length; i++) {
             if (_info.creditorStatus[_info.creditors[i]] == _status) {
@@ -118,7 +163,6 @@ abstract contract Delegation is Registration {
             }
         }
 
-        // Buat array hasil
         address[] memory _getCreditors = new address[](_count);
         uint256 _index = 0;
 

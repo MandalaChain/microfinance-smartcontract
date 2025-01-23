@@ -42,6 +42,17 @@ contract DataSharing is Delegation {
         string requestDate
     );
 
+    event PackagePurchased(
+        string institutionCode,
+        string purchaseDate,
+        string invoiceNumber,
+        uint256 packageId,
+        uint256 quantity,
+        string startDate,
+        string endDate,
+        uint256 quota
+    );
+
     // ======================================================================
     //                              REGISTRATION
     // ======================================================================
@@ -168,5 +179,31 @@ contract DataSharing is Delegation {
         Status _status
     ) external view returns (address[] memory) {
         return _getActiveCreditorsByStatus(_nik, _status);
+    }
+
+    // ======================================================================
+    //                              EVENTS
+    // ======================================================================
+    function purchasePackage(
+        string memory institutionCode, // Hashed institution code
+        string memory purchaseDate,
+        string memory invoiceNumber,
+        uint256 packageId,
+        uint256 quantity,
+        string memory startDate,
+        string memory endDate,
+        uint256 quota
+    ) external {
+        // Emit event tanpa menyimpan data ke storage
+        emit PackagePurchased(
+            institutionCode,
+            purchaseDate,
+            invoiceNumber,
+            packageId,
+            quantity,
+            startDate,
+            endDate,
+            quota
+        );
     }
 }

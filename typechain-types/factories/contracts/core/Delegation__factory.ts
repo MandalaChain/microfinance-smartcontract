@@ -118,6 +118,37 @@ const _abi = [
     inputs: [
       {
         indexed: true,
+        internalType: "bytes32",
+        name: "nik",
+        type: "bytes32",
+      },
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "creditorConsumerCode",
+        type: "bytes32",
+      },
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "creditorProviderCode",
+        type: "bytes32",
+      },
+      {
+        indexed: false,
+        internalType: "enum Delegation.Status",
+        name: "status",
+        type: "uint8",
+      },
+    ],
+    name: "Delegate",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
         internalType: "address",
         name: "previousOwner",
         type: "address",

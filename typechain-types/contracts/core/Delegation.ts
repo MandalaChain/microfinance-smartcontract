@@ -3,6 +3,7 @@
 /* eslint-disable */
 import type {
   BaseContract,
+  BigNumberish,
   BytesLike,
   FunctionFragment,
   Result,
@@ -31,6 +32,7 @@ export interface DelegationInterface extends Interface {
     nameOrSignatureOrTopic:
       | "CreditorAdded"
       | "DebtorAdded"
+      | "Delegate"
       | "OwnershipTransferred"
   ): EventFragment;
 
@@ -73,6 +75,31 @@ export namespace DebtorAddedEvent {
   export interface OutputObject {
     nik: string;
     debtorAddress: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace DelegateEvent {
+  export type InputTuple = [
+    nik: BytesLike,
+    creditorConsumerCode: BytesLike,
+    creditorProviderCode: BytesLike,
+    status: BigNumberish
+  ];
+  export type OutputTuple = [
+    nik: string,
+    creditorConsumerCode: string,
+    creditorProviderCode: string,
+    status: bigint
+  ];
+  export interface OutputObject {
+    nik: string;
+    creditorConsumerCode: string;
+    creditorProviderCode: string;
+    status: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -175,6 +202,13 @@ export interface Delegation extends BaseContract {
     DebtorAddedEvent.OutputObject
   >;
   getEvent(
+    key: "Delegate"
+  ): TypedContractEvent<
+    DelegateEvent.InputTuple,
+    DelegateEvent.OutputTuple,
+    DelegateEvent.OutputObject
+  >;
+  getEvent(
     key: "OwnershipTransferred"
   ): TypedContractEvent<
     OwnershipTransferredEvent.InputTuple,
@@ -203,6 +237,17 @@ export interface Delegation extends BaseContract {
       DebtorAddedEvent.InputTuple,
       DebtorAddedEvent.OutputTuple,
       DebtorAddedEvent.OutputObject
+    >;
+
+    "Delegate(bytes32,bytes32,bytes32,uint8)": TypedContractEvent<
+      DelegateEvent.InputTuple,
+      DelegateEvent.OutputTuple,
+      DelegateEvent.OutputObject
+    >;
+    Delegate: TypedContractEvent<
+      DelegateEvent.InputTuple,
+      DelegateEvent.OutputTuple,
+      DelegateEvent.OutputObject
     >;
 
     "OwnershipTransferred(address,address)": TypedContractEvent<

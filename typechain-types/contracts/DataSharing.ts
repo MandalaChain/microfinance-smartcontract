@@ -35,6 +35,7 @@ export interface DataSharingInterface extends Interface {
       | "getDebtor"
       | "getDebtorDataActiveCreditors"
       | "owner"
+      | "purchasePackage"
       | "removeCreditor"
       | "removeDebtor"
       | "renounceOwnership"
@@ -49,8 +50,10 @@ export interface DataSharingInterface extends Interface {
       | "CreditorAddedWithMetadata"
       | "DebtorAdded"
       | "DebtorAddedWithMetadata"
+      | "Delegate"
       | "DelegationRequestedMetadata"
       | "OwnershipTransferred"
+      | "PackagePurchased"
   ): EventFragment;
 
   encodeFunctionData(
@@ -96,6 +99,19 @@ export interface DataSharingInterface extends Interface {
     values: [BytesLike]
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "purchasePackage",
+    values: [
+      string,
+      string,
+      string,
+      BigNumberish,
+      BigNumberish,
+      string,
+      string,
+      BigNumberish
+    ]
+  ): string;
   encodeFunctionData(
     functionFragment: "removeCreditor",
     values: [BytesLike]
@@ -145,6 +161,10 @@ export interface DataSharingInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "purchasePackage",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "removeCreditor",
     data: BytesLike
@@ -264,6 +284,31 @@ export namespace DebtorAddedWithMetadataEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace DelegateEvent {
+  export type InputTuple = [
+    nik: BytesLike,
+    creditorConsumerCode: BytesLike,
+    creditorProviderCode: BytesLike,
+    status: BigNumberish
+  ];
+  export type OutputTuple = [
+    nik: string,
+    creditorConsumerCode: string,
+    creditorProviderCode: string,
+    status: bigint
+  ];
+  export interface OutputObject {
+    nik: string;
+    creditorConsumerCode: string;
+    creditorProviderCode: string;
+    status: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace DelegationRequestedMetadataEvent {
   export type InputTuple = [
     nik: BytesLike,
@@ -304,6 +349,43 @@ export namespace OwnershipTransferredEvent {
   export interface OutputObject {
     previousOwner: string;
     newOwner: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace PackagePurchasedEvent {
+  export type InputTuple = [
+    institutionCode: string,
+    purchaseDate: string,
+    invoiceNumber: string,
+    packageId: BigNumberish,
+    quantity: BigNumberish,
+    startDate: string,
+    endDate: string,
+    quota: BigNumberish
+  ];
+  export type OutputTuple = [
+    institutionCode: string,
+    purchaseDate: string,
+    invoiceNumber: string,
+    packageId: bigint,
+    quantity: bigint,
+    startDate: string,
+    endDate: string,
+    quota: bigint
+  ];
+  export interface OutputObject {
+    institutionCode: string;
+    purchaseDate: string;
+    invoiceNumber: string;
+    packageId: bigint;
+    quantity: bigint;
+    startDate: string;
+    endDate: string;
+    quota: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -423,6 +505,21 @@ export interface DataSharing extends BaseContract {
 
   owner: TypedContractMethod<[], [string], "view">;
 
+  purchasePackage: TypedContractMethod<
+    [
+      institutionCode: string,
+      purchaseDate: string,
+      invoiceNumber: string,
+      packageId: BigNumberish,
+      quantity: BigNumberish,
+      startDate: string,
+      endDate: string,
+      quota: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+
   removeCreditor: TypedContractMethod<
     [creditorCode: BytesLike],
     [void],
@@ -538,6 +635,22 @@ export interface DataSharing extends BaseContract {
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "purchasePackage"
+  ): TypedContractMethod<
+    [
+      institutionCode: string,
+      purchaseDate: string,
+      invoiceNumber: string,
+      packageId: BigNumberish,
+      quantity: BigNumberish,
+      startDate: string,
+      endDate: string,
+      quota: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
     nameOrSignature: "removeCreditor"
   ): TypedContractMethod<[creditorCode: BytesLike], [void], "nonpayable">;
   getFunction(
@@ -601,6 +714,13 @@ export interface DataSharing extends BaseContract {
     DebtorAddedWithMetadataEvent.OutputObject
   >;
   getEvent(
+    key: "Delegate"
+  ): TypedContractEvent<
+    DelegateEvent.InputTuple,
+    DelegateEvent.OutputTuple,
+    DelegateEvent.OutputObject
+  >;
+  getEvent(
     key: "DelegationRequestedMetadata"
   ): TypedContractEvent<
     DelegationRequestedMetadataEvent.InputTuple,
@@ -613,6 +733,13 @@ export interface DataSharing extends BaseContract {
     OwnershipTransferredEvent.InputTuple,
     OwnershipTransferredEvent.OutputTuple,
     OwnershipTransferredEvent.OutputObject
+  >;
+  getEvent(
+    key: "PackagePurchased"
+  ): TypedContractEvent<
+    PackagePurchasedEvent.InputTuple,
+    PackagePurchasedEvent.OutputTuple,
+    PackagePurchasedEvent.OutputObject
   >;
 
   filters: {
@@ -660,6 +787,17 @@ export interface DataSharing extends BaseContract {
       DebtorAddedWithMetadataEvent.OutputObject
     >;
 
+    "Delegate(bytes32,bytes32,bytes32,uint8)": TypedContractEvent<
+      DelegateEvent.InputTuple,
+      DelegateEvent.OutputTuple,
+      DelegateEvent.OutputObject
+    >;
+    Delegate: TypedContractEvent<
+      DelegateEvent.InputTuple,
+      DelegateEvent.OutputTuple,
+      DelegateEvent.OutputObject
+    >;
+
     "DelegationRequestedMetadata(bytes32,string,bytes32,bytes32,string,string,string)": TypedContractEvent<
       DelegationRequestedMetadataEvent.InputTuple,
       DelegationRequestedMetadataEvent.OutputTuple,
@@ -680,6 +818,17 @@ export interface DataSharing extends BaseContract {
       OwnershipTransferredEvent.InputTuple,
       OwnershipTransferredEvent.OutputTuple,
       OwnershipTransferredEvent.OutputObject
+    >;
+
+    "PackagePurchased(string,string,string,uint256,uint256,string,string,uint256)": TypedContractEvent<
+      PackagePurchasedEvent.InputTuple,
+      PackagePurchasedEvent.OutputTuple,
+      PackagePurchasedEvent.OutputObject
+    >;
+    PackagePurchased: TypedContractEvent<
+      PackagePurchasedEvent.InputTuple,
+      PackagePurchasedEvent.OutputTuple,
+      PackagePurchasedEvent.OutputObject
     >;
   };
 }

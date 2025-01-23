@@ -8,16 +8,17 @@ abstract contract Registration is Ownable {
     error NotEligible();
     error AlreadyExist();
     error AlreadyRemoved();
+    error InvalidAddress();
 
     address private _platform;
 
     // mapping from platform that customer is registered from NIK
     mapping(bytes32 => address) private _debtors;
     // mapping from platform that debtors is registered
-    mapping(address => bool) private _creditors;
+    mapping(bytes32 => address) private _creditors;
 
     event DebtorAdded(bytes32 indexed nik, address indexed debtorAddress);
-    event CreditorAdded(address indexed creditorAddress);
+    event CreditorAdded(bytes32 indexed creditorAddress);
 
     // check platform is eligible
     modifier onlyPlatform() {
@@ -25,9 +26,16 @@ abstract contract Registration is Ownable {
         _;
     }
 
+    function _checkAddressNotZero(
+        address _checkAddress
+    ) internal pure returns (bool) {
+        return _checkAddress == address(0);
+    }
+
     // check address is eligible as debtor
-    function _isCreditor(address _addressCreditor) internal view {
-        if (!_creditors[_addressCreditor]) revert NotEligible();
+    function _isCreditor(bytes32 _creditorCode) internal view {
+        address _address = _creditors[_creditorCode];
+        if (_checkAddressNotZero(_address)) revert NotEligible();
     }
 
     function _setPlatform(address _setNewPlatform) internal onlyOwner {
@@ -40,38 +48,43 @@ abstract contract Registration is Ownable {
         bytes32 _nik,
         address _addressCustomer
     ) internal onlyPlatform {
-        if (_getDebtor(_nik) != address(0)) revert AlreadyExist();
+        if (!_checkAddressNotZero(_getDebtor(_nik))) revert AlreadyExist();
         _debtors[_nik] = _addressCustomer;
         emit DebtorAdded(_nik, _addressCustomer);
     }
 
     // add creditor
     // !Note: metadata is must added
-    function _addCreditor(address _addressCreditor) internal onlyPlatform {
-        if (_creditors[_addressCreditor]) revert AlreadyExist();
-        _creditors[_addressCreditor] = true;
-        emit CreditorAdded(_addressCreditor);
+    function _addCreditor(
+        bytes32 _creditorCode,
+        address _setAddress
+    ) internal onlyPlatform {
+        if (_checkAddressNotZero(_setAddress)) revert InvalidAddress();
+        address _address = _creditors[_creditorCode];
+        if (!_checkAddressNotZero(_address)) revert AlreadyExist();
+        _creditors[_creditorCode] = _setAddress;
+        emit CreditorAdded(_creditorCode);
     }
 
-    function _removeCreditor(address _addressCreditor) internal onlyPlatform {
-        if (!_creditors[_addressCreditor]) revert AlreadyRemoved();
-        _creditors[_addressCreditor] = false;
+    function _removeCreditor(bytes32 _creditorCode) internal onlyPlatform {
+        address _address = _creditors[_creditorCode];
+        if (_checkAddressNotZero(_address)) revert AlreadyRemoved();
+        delete _creditors[_creditorCode];
     }
 
     function _removeDebtor(bytes32 _nik) internal onlyPlatform {
-        if (_debtors[_nik] == address(0)) revert AlreadyRemoved();
+        address _address = _debtors[_nik];
+        if (_checkAddressNotZero(_address)) revert AlreadyRemoved();
         delete _debtors[_nik];
     }
 
-    // return address Debtor by nik
+    function _getCreditor(
+        bytes32 _codeCreditor
+    ) internal view returns (address) {
+        return _creditors[_codeCreditor];
+    }
+
     function _getDebtor(bytes32 _nik) internal view returns (address) {
         return _debtors[_nik];
     }
-
-    // return eligibility debtor
-    // function _getCreditor(
-    //     address _addressCreditor
-    // ) internal view returns (bool) {
-    //     return _creditors[_addressCreditor];
-    // }
 }

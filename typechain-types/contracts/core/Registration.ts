@@ -56,7 +56,7 @@ export interface RegistrationInterface extends Interface {
 }
 
 export namespace CreditorAddedEvent {
-  export type InputTuple = [creditorAddress: AddressLike];
+  export type InputTuple = [creditorAddress: BytesLike];
   export type OutputTuple = [creditorAddress: string];
   export interface OutputObject {
     creditorAddress: string;
@@ -183,7 +183,7 @@ export interface Registration extends BaseContract {
   >;
 
   filters: {
-    "CreditorAdded(address)": TypedContractEvent<
+    "CreditorAdded(bytes32)": TypedContractEvent<
       CreditorAddedEvent.InputTuple,
       CreditorAddedEvent.OutputTuple,
       CreditorAddedEvent.OutputObject

@@ -26,6 +26,11 @@ const _abi = [
   },
   {
     inputs: [],
+    name: "InvalidAddress",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "InvalidStatusApproveRequest",
     type: "error",
   },
@@ -81,40 +86,9 @@ const _abi = [
     inputs: [
       {
         indexed: true,
-        internalType: "address",
-        name: "consumer",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "provider",
-        type: "address",
-      },
-      {
-        indexed: false,
         internalType: "bytes32",
-        name: "nik",
-        type: "bytes32",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "timestamp",
-        type: "uint256",
-      },
-    ],
-    name: "ApproveDelegate",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
         name: "creditorAddress",
-        type: "address",
+        type: "bytes32",
       },
     ],
     name: "CreditorAdded",
@@ -156,62 +130,6 @@ const _abi = [
       },
     ],
     name: "OwnershipTransferred",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "consumer",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "provider",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "bytes32",
-        name: "nik",
-        type: "bytes32",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "timestamp",
-        type: "uint256",
-      },
-    ],
-    name: "RequestCreated",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "nik",
-        type: "bytes32",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "creditor",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "enum Delegation.Status",
-        name: "status",
-        type: "uint8",
-      },
-    ],
-    name: "StatusUpdated",
     type: "event",
   },
   {

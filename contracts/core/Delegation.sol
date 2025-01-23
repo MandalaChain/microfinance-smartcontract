@@ -24,7 +24,6 @@ abstract contract Delegation is Registration {
     struct Request {
         Status status;
         bytes32 nik;
-        uint256 timestamp;
     }
 
     struct DebtorInfo {
@@ -38,23 +37,10 @@ abstract contract Delegation is Registration {
     // Mapping for delegation requests (Consumer -> Provider -> Request)
     mapping(address => mapping(address => Request)) private _request;
 
-    event RequestCreated(
-        address indexed consumer,
-        address provider,
-        bytes32 nik,
-        uint256 timestamp
-    );
-
-    event ApproveDelegate(
-        address indexed consumer,
-        address provider,
-        bytes32 nik,
-        uint256 timestamp
-    );
-
-    event StatusUpdated(
+    event Delegate(
         bytes32 indexed nik,
-        address indexed creditor,
+        bytes32 indexed creditorConsumerCode,
+        bytes32 indexed creditorProviderCode,
         Status status
     );
 
@@ -67,14 +53,21 @@ abstract contract Delegation is Registration {
 
     function _checkCompliance(
         bytes32 _nik,
-        address _consumer,
-        address _provider,
+        bytes32 _codeConsumer,
+        bytes32 _codeProvider,
         Function _function
-    ) private view returns (address) {
-        address _nikAddress = _getDebtor(_nik);
-        if (_nikAddress == address(0)) revert NikNeedRegistered();
-        _isCreditor(_consumer);
-        _isCreditor(_provider);
+    )
+        private
+        view
+        returns (address _nikAddress, address _consumer, address _provider)
+    {
+        _nikAddress = _getDebtor(_nik);
+        if (_checkAddressNotZero(_nikAddress)) revert NikNeedRegistered();
+        _isCreditor(_codeConsumer);
+        _isCreditor(_codeProvider);
+
+        _consumer = _getCreditor(_codeConsumer);
+        _provider = _getCreditor(_codeProvider);
 
         DebtorInfo storage _info = _getCustomerStoraget(_nik);
         if (_info.creditorStatus[_provider] != Status.APPROVED) {
@@ -91,53 +84,57 @@ abstract contract Delegation is Registration {
                 revert InvalidStatusApproveRequest();
             }
         }
-        return _nikAddress;
+        return (_nikAddress, _consumer, _provider);
     }
 
     // Request delegation from one creditor to another
     function _requestDelegation(
         bytes32 _nik,
-        address _provider
+        bytes32 _codeConsumer,
+        bytes32 _codeProvider
     ) internal {
-        address _nikAddress = _checkCompliance(
-            _nik,
-            msg.sender,
-            _provider,
-            Function.REQUEST
-        );
+        (
+            address _nikAddress,
+            address _consumer,
+            address _provider
+        ) = _checkCompliance(
+                _nik,
+                _codeConsumer,
+                _codeProvider,
+                Function.REQUEST
+            );
 
-        uint256 _timestamp = block.timestamp;
-        _request[msg.sender][_provider] = Request({
+        _request[_consumer][_provider] = Request({
             status: Status.PENDING,
-            nik: _nik,
-            timestamp: _timestamp
+            nik: _nik
         });
-        if (_debtorInfo[_nikAddress].creditorStatus[msg.sender] == Status(0)) {
-            _debtorInfo[_nikAddress].creditors.push(msg.sender);
+        if (_debtorInfo[_nikAddress].creditorStatus[_consumer] == Status(0)) {
+            _debtorInfo[_nikAddress].creditors.push(_consumer);
         }
-        _debtorInfo[_nikAddress].creditorStatus[msg.sender] = Status.PENDING;
-
-        emit RequestCreated(msg.sender, _provider, _nik, _timestamp);
+        _debtorInfo[_nikAddress].creditorStatus[_consumer] = Status.PENDING;
     }
 
     function _delegate(
         bytes32 _nik,
-        address _consumer,
+        bytes32 _codeConsumer,
+        bytes32 _codeProvider,
         Status _status
     ) internal {
-        address _nikAddress = _checkCompliance(
-            _nik,
-            _consumer,
-            msg.sender,
-            Function.DELEGATE
-        );
+        (
+            address _nikAddress,
+            address _consumer,
+            address _provider
+        ) = _checkCompliance(
+                _nik,
+                _codeConsumer,
+                _codeProvider,
+                Function.REQUEST
+            );
 
-        uint256 _timestamp = block.timestamp;
-        _request[_consumer][msg.sender].status = _status;
-        _request[_consumer][msg.sender].timestamp = _timestamp;
+        _request[_consumer][_provider].status = _status;
         _debtorInfo[_nikAddress].creditorStatus[_consumer] = _status;
 
-        emit ApproveDelegate(_consumer, msg.sender, _nik, _timestamp);
+        emit Delegate(_nik, _codeConsumer, _codeProvider, _status);
     }
 
     // Add a creditor for a debtor
@@ -147,8 +144,6 @@ abstract contract Delegation is Registration {
             revert AlreadyExist();
         _info.creditorStatus[_creditor] = Status.APPROVED;
         _info.creditors.push(_creditor);
-
-        emit StatusUpdated(_nik, _creditor, Status.APPROVED);
     }
 
     function _getDebtorStatuses(

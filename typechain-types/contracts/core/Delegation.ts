@@ -3,7 +3,6 @@
 /* eslint-disable */
 import type {
   BaseContract,
-  BigNumberish,
   BytesLike,
   FunctionFragment,
   Result,
@@ -30,12 +29,9 @@ export interface DelegationInterface extends Interface {
 
   getEvent(
     nameOrSignatureOrTopic:
-      | "ApproveDelegate"
       | "CreditorAdded"
       | "DebtorAdded"
       | "OwnershipTransferred"
-      | "RequestCreated"
-      | "StatusUpdated"
   ): EventFragment;
 
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
@@ -59,33 +55,8 @@ export interface DelegationInterface extends Interface {
   ): Result;
 }
 
-export namespace ApproveDelegateEvent {
-  export type InputTuple = [
-    consumer: AddressLike,
-    provider: AddressLike,
-    nik: BytesLike,
-    timestamp: BigNumberish
-  ];
-  export type OutputTuple = [
-    consumer: string,
-    provider: string,
-    nik: string,
-    timestamp: bigint
-  ];
-  export interface OutputObject {
-    consumer: string;
-    provider: string;
-    nik: string;
-    timestamp: bigint;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
 export namespace CreditorAddedEvent {
-  export type InputTuple = [creditorAddress: AddressLike];
+  export type InputTuple = [creditorAddress: BytesLike];
   export type OutputTuple = [creditorAddress: string];
   export interface OutputObject {
     creditorAddress: string;
@@ -115,49 +86,6 @@ export namespace OwnershipTransferredEvent {
   export interface OutputObject {
     previousOwner: string;
     newOwner: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace RequestCreatedEvent {
-  export type InputTuple = [
-    consumer: AddressLike,
-    provider: AddressLike,
-    nik: BytesLike,
-    timestamp: BigNumberish
-  ];
-  export type OutputTuple = [
-    consumer: string,
-    provider: string,
-    nik: string,
-    timestamp: bigint
-  ];
-  export interface OutputObject {
-    consumer: string;
-    provider: string;
-    nik: string;
-    timestamp: bigint;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace StatusUpdatedEvent {
-  export type InputTuple = [
-    nik: BytesLike,
-    creditor: AddressLike,
-    status: BigNumberish
-  ];
-  export type OutputTuple = [nik: string, creditor: string, status: bigint];
-  export interface OutputObject {
-    nik: string;
-    creditor: string;
-    status: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -233,13 +161,6 @@ export interface Delegation extends BaseContract {
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
 
   getEvent(
-    key: "ApproveDelegate"
-  ): TypedContractEvent<
-    ApproveDelegateEvent.InputTuple,
-    ApproveDelegateEvent.OutputTuple,
-    ApproveDelegateEvent.OutputObject
-  >;
-  getEvent(
     key: "CreditorAdded"
   ): TypedContractEvent<
     CreditorAddedEvent.InputTuple,
@@ -260,34 +181,9 @@ export interface Delegation extends BaseContract {
     OwnershipTransferredEvent.OutputTuple,
     OwnershipTransferredEvent.OutputObject
   >;
-  getEvent(
-    key: "RequestCreated"
-  ): TypedContractEvent<
-    RequestCreatedEvent.InputTuple,
-    RequestCreatedEvent.OutputTuple,
-    RequestCreatedEvent.OutputObject
-  >;
-  getEvent(
-    key: "StatusUpdated"
-  ): TypedContractEvent<
-    StatusUpdatedEvent.InputTuple,
-    StatusUpdatedEvent.OutputTuple,
-    StatusUpdatedEvent.OutputObject
-  >;
 
   filters: {
-    "ApproveDelegate(address,address,bytes32,uint256)": TypedContractEvent<
-      ApproveDelegateEvent.InputTuple,
-      ApproveDelegateEvent.OutputTuple,
-      ApproveDelegateEvent.OutputObject
-    >;
-    ApproveDelegate: TypedContractEvent<
-      ApproveDelegateEvent.InputTuple,
-      ApproveDelegateEvent.OutputTuple,
-      ApproveDelegateEvent.OutputObject
-    >;
-
-    "CreditorAdded(address)": TypedContractEvent<
+    "CreditorAdded(bytes32)": TypedContractEvent<
       CreditorAddedEvent.InputTuple,
       CreditorAddedEvent.OutputTuple,
       CreditorAddedEvent.OutputObject
@@ -318,28 +214,6 @@ export interface Delegation extends BaseContract {
       OwnershipTransferredEvent.InputTuple,
       OwnershipTransferredEvent.OutputTuple,
       OwnershipTransferredEvent.OutputObject
-    >;
-
-    "RequestCreated(address,address,bytes32,uint256)": TypedContractEvent<
-      RequestCreatedEvent.InputTuple,
-      RequestCreatedEvent.OutputTuple,
-      RequestCreatedEvent.OutputObject
-    >;
-    RequestCreated: TypedContractEvent<
-      RequestCreatedEvent.InputTuple,
-      RequestCreatedEvent.OutputTuple,
-      RequestCreatedEvent.OutputObject
-    >;
-
-    "StatusUpdated(bytes32,address,uint8)": TypedContractEvent<
-      StatusUpdatedEvent.InputTuple,
-      StatusUpdatedEvent.OutputTuple,
-      StatusUpdatedEvent.OutputObject
-    >;
-    StatusUpdated: TypedContractEvent<
-      StatusUpdatedEvent.InputTuple,
-      StatusUpdatedEvent.OutputTuple,
-      StatusUpdatedEvent.OutputObject
     >;
   };
 }

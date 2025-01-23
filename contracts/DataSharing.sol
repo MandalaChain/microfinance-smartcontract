@@ -13,7 +13,7 @@ contract DataSharing is Delegation {
     //                              EVENTS
     // ======================================================================
     event CreditorAddedWithMetadata(
-        address indexed creditorAddress,
+        bytes32 indexed creditorAddress,
         string institutionCode,
         string institutionName,
         string approvalDate,
@@ -24,7 +24,7 @@ contract DataSharing is Delegation {
     event DebtorAddedWithMetadata(
         bytes32 indexed nik,
         string name,
-        string creditorCode,
+        bytes32 creditorCode,
         string creditorName,
         string applicationDate,
         string approvalDate,
@@ -35,13 +35,12 @@ contract DataSharing is Delegation {
     event DelegationRequestedMetadata(
         bytes32 indexed nik,
         string requestId,
-        string nikDebtor,
-        string creditorCode,
+        bytes32 creditorConsumerCode,
+        bytes32 creditorProviderCode,
         string transactionId,
         string referenceId,
         string requestDate
     );
-
 
     // ======================================================================
     //                              REGISTRATION
@@ -50,21 +49,25 @@ contract DataSharing is Delegation {
         _addDebtor(nik, debtorAddress);
     }
 
-    function addCreditor(address creditorAddress) external {
-        _addCreditor(creditorAddress);
+    function addCreditor(
+        bytes32 creditorCode,
+        address creditorAddress
+    ) external {
+        _addCreditor(creditorCode, creditorAddress);
     }
 
     function addCreditor(
         address creditorAddress,
+        bytes32 creditorCode,
         string memory institutionCode,
         string memory institutionName,
         string memory approvalDate,
         string memory signerName,
         string memory signerPosition
     ) external {
-        _addCreditor(creditorAddress);
+        _addCreditor(creditorCode, creditorAddress);
         emit CreditorAddedWithMetadata(
-            creditorAddress,
+            creditorCode,
             institutionCode,
             institutionName,
             approvalDate,
@@ -73,8 +76,8 @@ contract DataSharing is Delegation {
         );
     }
 
-    function removeCreditor(address creditorAddress) external {
-        _removeCreditor(creditorAddress);
+    function removeCreditor(bytes32 creditorCode) external {
+        _removeCreditor(creditorCode);
     }
 
     function removeDebtor(bytes32 nik) external {
@@ -90,27 +93,27 @@ contract DataSharing is Delegation {
     // ======================================================================
     function requestDelegation(
         bytes32 _nik,
-        address _creditor
+        bytes32 _consumer,
+        bytes32 _provider
     ) external {
-        _requestDelegation(_nik, _creditor);
+        _requestDelegation(_nik, _consumer, _provider);
     }
 
     function requestDelegation(
         bytes32 nik,
-        address creditor,
+        bytes32 _consumer,
+        bytes32 _provider,
         string memory requestId,
-        string memory nikDebtor,
-        string memory creditorCode,
         string memory transactionId,
         string memory referenceId,
         string memory requestDate
     ) external {
-        _requestDelegation(nik, creditor);
+        _requestDelegation(nik, _consumer, _provider);
         emit DelegationRequestedMetadata(
             nik,
             requestId,
-            nikDebtor,
-            creditorCode,
+            _consumer,
+            _provider,
             transactionId,
             referenceId,
             requestDate
@@ -119,28 +122,29 @@ contract DataSharing is Delegation {
 
     function delegate(
         bytes32 _nik,
-        address _consumer,
+        bytes32 _consumer,
+        bytes32 _provider,
         Status _status
     ) external {
-        _delegate(_nik, _consumer, _status);
+        _delegate(_nik, _consumer, _provider, _status);
     }
 
     function addDebtorToCreditor(
         bytes32 nik,
-        address creditor,
+        bytes32 creditor,
+        address creditorAddress,
         string memory name,
-        string memory creditorCode,
         string memory creditorName,
         string memory applicationDate,
         string memory approvalDate,
         string memory urlKTP,
         string memory urlApproval
     ) external onlyPlatform {
-        _addCreditorForDebtor(nik, creditor);
+        _addCreditorForDebtor(nik, creditorAddress);
         emit DebtorAddedWithMetadata(
             nik,
             name,
-            creditorCode,
+            creditor,
             creditorName,
             applicationDate,
             approvalDate,

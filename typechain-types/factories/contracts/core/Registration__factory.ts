@@ -26,6 +26,11 @@ const _abi = [
   },
   {
     inputs: [],
+    name: "InvalidAddress",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "NotEligible",
     type: "error",
   },
@@ -56,9 +61,9 @@ const _abi = [
     inputs: [
       {
         indexed: true,
-        internalType: "address",
+        internalType: "bytes32",
         name: "creditorAddress",
-        type: "address",
+        type: "bytes32",
       },
     ],
     name: "CreditorAdded",

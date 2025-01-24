@@ -16,8 +16,8 @@ abstract contract Delegation is Registration {
     }
 
     enum Status {
-        APPROVED,
         REJECTED,
+        APPROVED,
         PENDING
     }
 
@@ -61,6 +61,10 @@ abstract contract Delegation is Registration {
         view
         returns (address _nikAddress, address _consumer, address _provider)
     {
+        _checkHash(_nik);
+        _checkHash(_codeConsumer);
+        _checkHash(_codeProvider);
+
         _nikAddress = _getDebtor(_nik);
         if (_checkAddressNotZero(_nikAddress)) revert NikNeedRegistered();
         _isCreditor(_codeConsumer);
@@ -138,7 +142,13 @@ abstract contract Delegation is Registration {
     }
 
     // Add a creditor for a debtor
-    function _addCreditorForDebtor(bytes32 _nik, address _creditor) internal {
+    function _addCreditorForDebtor(bytes32 _nik, bytes32 _codeCreditor) internal {
+        _checkHash(_nik);
+        _checkHash(_codeCreditor);
+
+        address _creditor = _getCreditor(_codeCreditor);
+        if (_checkAddressNotZero(_creditor)) revert InvalidAddress();
+
         DebtorInfo storage _info = _getCustomerStoraget(_nik);
         if (_info.creditorStatus[_creditor] == Status.APPROVED)
             revert AlreadyExist();

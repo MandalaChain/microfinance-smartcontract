@@ -1,7 +1,6 @@
 {
     "wake.compiler.solc.remappings": [
         "@openzeppelin/=node_modules/@openzeppelin/",
-        "erc721a/=node_modules/erc721a/",
         "hardhat/=node_modules/hardhat/"
     ]
 }

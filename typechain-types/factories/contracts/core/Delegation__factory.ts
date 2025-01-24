@@ -11,11 +11,6 @@ import type {
 const _abi = [
   {
     inputs: [],
-    name: "AddressNotEligible",
-    type: "error",
-  },
-  {
-    inputs: [],
     name: "AlreadyExist",
     type: "error",
   },
@@ -27,6 +22,11 @@ const _abi = [
   {
     inputs: [],
     name: "InvalidAddress",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidHash",
     type: "error",
   },
   {
@@ -45,28 +45,6 @@ const _abi = [
     type: "error",
   },
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "owner",
-        type: "address",
-      },
-    ],
-    name: "OwnableInvalidOwner",
-    type: "error",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-    ],
-    name: "OwnableUnauthorizedAccount",
-    type: "error",
-  },
-  {
     inputs: [],
     name: "ProviderNotEligible",
     type: "error",
@@ -80,38 +58,6 @@ const _abi = [
     inputs: [],
     name: "RequestNotFound",
     type: "error",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "creditorAddress",
-        type: "bytes32",
-      },
-    ],
-    name: "CreditorAdded",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "nik",
-        type: "bytes32",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "debtorAddress",
-        type: "address",
-      },
-    ],
-    name: "DebtorAdded",
-    type: "event",
   },
   {
     anonymous: false,
@@ -143,58 +89,6 @@ const _abi = [
     ],
     name: "Delegate",
     type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "previousOwner",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "newOwner",
-        type: "address",
-      },
-    ],
-    name: "OwnershipTransferred",
-    type: "event",
-  },
-  {
-    inputs: [],
-    name: "owner",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "renounceOwnership",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "newOwner",
-        type: "address",
-      },
-    ],
-    name: "transferOwnership",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
   },
 ] as const;
 

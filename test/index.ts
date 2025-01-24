@@ -4,7 +4,6 @@ import { ethers } from "hardhat";
 import keccak256 from "keccak256";
 import { utils, BigNumber } from "ethers";
 import CollectionConfig from "../config/CollectionConfig";
-import ContractArguments from "../config/ContractArguments";
 import { NftContractType } from "../lib/NftContractProvider";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
@@ -13,64 +12,28 @@ chai.use(ChaiAsPromised);
 describe(CollectionConfig.contractName, async function () {
   let contract!: NftContractType;
   let owner!: SignerWithAddress;
+  let platform!: SignerWithAddress;
+  let bankA!: SignerWithAddress;
+  let bankB!: SignerWithAddress;
+  let customer!: SignerWithAddress;
   let other!: SignerWithAddress;
   const abiCoder = new utils.AbiCoder();
 
-  const docType = "LEVY";
-  const hashDocType = keccak256(abiCoder.encode(["string"], [docType]));
+  const nik = "123456789";
+  const nikOther = "987654321";
+  const codeBankA = "1234";
+  const codeBankB = "5678";
+  const codeBankOther = "8765";
 
-  const voucher = {
-    user: {
-      passport: "A12345678",
-      name: "John Doe",
-      email: "johndoe@example.com",
-      arrivalDate: BigNumber.from(Math.floor(Date.now() / 1000) + 86400), // 1 day from now (Unix timestamp)
-    },
-    voucherCode: "LEVY123456",
-    levyExpiredDate: BigNumber.from(Math.floor(Date.now() / 1000) + 86400 * 60), // 60 days from now
-    levyStatus: 0, // Active
-  };
-
-  const voucherHash = keccak256(
-    abiCoder.encode(
-      ["string", "string", "string", "string", "uint256"],
-      [
-        voucher.user.passport,
-        voucher.user.name,
-        voucher.user.email,
-        voucher.voucherCode,
-        voucher.levyExpiredDate,
-      ]
-    )
-  );
-
-  const voucherError = {
-    user: {
-      passport: "A123456789",
-      name: "John Doe Romlah",
-      email: "johndoe123@example.com",
-      arrivalDate: BigNumber.from(Math.floor(Date.now() / 1000) + 86401), // 1 day from now (Unix timestamp)
-    },
-    voucherCode: "LEVY123456789",
-    levyExpiredDate: BigNumber.from(Math.floor(Date.now() / 1000) + 86401 * 60), // 60 days from now
-    levyStatus: 2, // Expired
-  };
-
-  const voucherHashError = keccak256(
-    abiCoder.encode(
-      ["string", "string", "string", "string", "uint256"],
-      [
-        voucherError.user.passport,
-        voucherError.user.name,
-        voucherError.user.email,
-        voucherError.voucherCode,
-        voucherError.levyExpiredDate,
-      ]
-    )
-  );
+  function hash32(identifier: string): String {
+    return ethers.utils.keccak256(
+      ethers.utils.defaultAbiCoder.encode(["string"], [identifier])
+    );
+  }
 
   before(async function () {
-    [owner, other] = await ethers.getSigners();
+    [owner, platform, bankA, bankB, customer, other] =
+      await ethers.getSigners();
   });
 
   it("Contract deployment", async function () {
@@ -78,163 +41,361 @@ describe(CollectionConfig.contractName, async function () {
       CollectionConfig.contractName
     );
     contract = (await Contract.deploy(
-      ...ContractArguments
+      await platform.getAddress()
     )) as unknown as NftContractType;
 
     await contract.deployed();
-    await contract.connect(owner).approveDocType(docType);
-    await contract.connect(owner).setApproveClient(await owner.getAddress(), true);
   });
 
-  it("Check initial data", async function () {
-    expect(await contract.name()).to.equal(CollectionConfig.tokenName);
-    expect(await contract.symbol()).to.equal(CollectionConfig.tokenSymbol);
-
-    expect((await contract.totalSupply()).toString()).to.equal("0");
-  });
-
-  // it("Owner only functions", async function () {
-  //   await expect(
-  //     contract.connect(other).mintData(voucherHash, "", 123)
-  //   ).to.be.rejectedWith(`OwnableUnauthorizedAccount("${other.address}")`);
-
-  //   await expect(
-  //     contract.connect(other).redeemData(voucherHashError)
-  //   ).to.be.rejectedWith(`OwnableUnauthorizedAccount("${other.address}")`);
-  // });
-
-  it("Mint Voucher Levy", async function () {
-    await contract.connect(owner).mintData(voucherHash, hashDocType, "asseet");
-
-    expect((await contract.totalSupply()).toString()).to.equal("1");
-  });
-
-  it("Should Error if voucher already exists", async function () {
+  it("Check owner address", async function () {
+    expect(await contract.owner()).to.equal(await owner.getAddress());
     await expect(
-      contract.connect(owner).mintData(voucherHash, hashDocType, "asseet")
-    ).to.be.rejectedWith("DataAlreadyExists");
+      contract.connect(other).setPlatform(await other.getAddress())
+    ).to.be.rejectedWith(
+      `OwnableUnauthorizedAccount("${await other.getAddress()}")`
+    );
   });
 
-  // it("Set on chain url after minting voucher", async function () {
-  //   await contract.connect(owner).setOnChainURL(voucherHash, "https://url.com");
-  // });
+  it("Initial Data", async function () {
+    expect(await contract.getDebtor(hash32(nik))).to.be.equal(
+      ethers.constants.AddressZero
+    );
 
-  // it("Should return false from verify voucher cause not mint before", async function () {
-  //   await expect(
-  //     contract.connect(owner).verifyData(voucherHashError)
-  //   ).to.be.rejectedWith("VoucherNotExist");
-  // });
+    expect(await contract.getCreditor(hash32(codeBankA))).to.be.equal(
+      ethers.constants.AddressZero
+    );
 
-  // it("Success verify voucher", async function () {
-  //   await contract.connect(other).verifyData(voucherHash);
-  // });
+    expect(
+      await contract.getDebtorDataActiveCreditors(hash32(nik))
+    ).to.deep.equal([[], []]);
 
-  // it("Check initial data from voucher", async function () {
-  //   const voucherData = await contract.getAssetData(voucherHash);
-  //   expect(voucherData.dataOwner).to.equal(await owner.getAddress());
-  //   expect(voucherData.createdDated.toString()).to.equal(voucher.levyExpiredDate.toString());
-  //   expect(voucherData.assetStatus).to.equal(voucher.levyStatus);
-  //   expect(voucherData.onChainUrl).to.equal("https://url.com");
-  // });
+    expect(
+      await contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(0))
+    ).to.deep.equal([]);
 
-  // it("Should return error from verify voucher cause expired", async function () {
-  //   // increase time
-  //   await ethers.provider.send("evm_increaseTime", [
-  //     Math.floor(Date.now() / 1000) + 86401 * 60,
-  //   ]);
-  //   await ethers.provider.send("evm_mine", []);
+    expect(
+      await contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(1))
+    ).to.deep.equal([]);
 
-  //   await expect(
-  //     contract.connect(other).verifyVoucher(voucherHash)
-  //   ).to.be.rejectedWith("VoucherExpired");
-  // });
+    expect(
+      await contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(2))
+    ).to.deep.equal([]);
+  });
 
-  // it("Should return error from extend voucher cause date input = 0", async function () {
-  //   await expect(
-  //     contract.connect(owner).extendLevy(voucherHash, BigInt(0))
-  //   ).to.be.rejectedWith("InvalidDate");
-  // });
+  it("Check only platform", async function () {
+    await expect(
+      contract
+        .connect(other)
+        .addDebtor(hash32(nik), await customer.getAddress())
+    ).to.be.rejectedWith("AddressNotEligible");
 
-  // it("Should return error from extend voucher cause date input < Date Now", async function () {
-  //   await expect(
-  //     contract
-  //       .connect(owner)
-  //       .extendLevy(
-  //         voucherHash,
-  //         BigInt(Math.floor(Date.now() / 1000) + 86401 * 60)
-  //       )
-  //   ).to.be.rejectedWith("InvalidDate");
-  // });
+    await expect(
+      contract
+        .connect(other)
+        .functions["addDebtor(bytes32,address)"](
+          hash32(codeBankA),
+          await bankA.getAddress()
+        )
+    ).to.be.rejectedWith("AddressNotEligible");
 
-  // it("Should return error from extend voucher cause date input < expired time", async function () {
-  //   const voucherData = await contract.getVoucherData(voucherHash);
-  //   // Hardcode from levyExpiredDate struct voucher
-  //   const setTime = BigNumber.from(Math.floor(Date.now() / 1000) + 86400 * 60).sub(BigNumber.from(60));
-  //   await expect(
-  //     contract.connect(owner).extendLevy(voucherHash, setTime)
-  //   ).to.be.rejectedWith("InvalidDate");
-  // });
+    await expect(
+      contract
+        .connect(other)
+        .functions[
+          "addCreditor(address,bytes32,string,string,string,string,string)"
+        ](
+          await bankA.getAddress(),
+          hash32(codeBankA),
+          "institutionCode",
+          "institutionName",
+          "approvalDate",
+          "signerName",
+          "signerPosition"
+        )
+    ).to.be.rejectedWith("AddressNotEligible");
 
-  // it("Success Extend Levy", async function () {
-  //   const timeNow = (await ethers.provider.getBlock("latest"))!.timestamp;
-  //   const setTimeExtend = timeNow + 86400 * 60;
-  //   await contract
-  //     .connect(owner)
-  //     .extendLevy(voucherHash, BigInt(setTimeExtend));
-  // });
+    await expect(
+      contract.connect(other).removeDebtor(hash32(nik))
+    ).to.be.rejectedWith("AddressNotEligible");
 
-  // it("Should error Reedem Voucher cause voucher still active", async function () {
-  //   await expect(
-  //     contract.connect(owner).redeemVoucher(voucherHash)
-  //   ).to.be.rejectedWith("VoucherStillActive");
-  // });
+    await expect(
+      contract.connect(other).removeCreditor(hash32(codeBankA))
+    ).to.be.rejectedWith("AddressNotEligible");
 
-  // it("Success from verify voucher after extend", async function () {
-  //   await contract.connect(other).verifyVoucher(voucherHash);
-  // });
+    await expect(
+      contract
+        .connect(other)
+        .addDebtorToCreditor(
+          hash32(nik),
+          hash32(codeBankA),
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        )
+    ).to.be.rejectedWith("AddressNotEligible");
+  });
 
-  // it("Should return error from verify voucher cause expired after extend", async function () {
-  //   // increase time
-  //   await ethers.provider.send("evm_increaseTime", [
-  //     Math.floor(Date.now() / 1000) + 86401 * 60,
-  //   ]);
-  //   await ethers.provider.send("evm_mine", []);
+  it("Error adding creditor using zero hash", async function () {
+    await expect(
+      contract
+        .connect(platform)
+        .functions[
+          "addCreditor(address,bytes32,string,string,string,string,string)"
+        ](
+          await bankA.getAddress(),
+          ethers.utils.hexZeroPad("0x0", 32),
+          "institutionCode",
+          "institutionName",
+          "approvalDate",
+          "signerName",
+          "signerPosition"
+        )
+    ).to.be.rejectedWith("InvalidHash");
+  });
 
-  //   await expect(
-  //     contract.connect(other).verifyVoucher(voucherHash)
-  //   ).to.be.rejectedWith("VoucherExpired");
-  // });
+  it("Error adding creditor using zero address", async function () {
+    await expect(
+      contract
+        .connect(platform)
+        .functions[
+          "addCreditor(address,bytes32,string,string,string,string,string)"
+        ](
+          ethers.constants.AddressZero,
+          hash32(codeBankA),
+          "institutionCode",
+          "institutionName",
+          "approvalDate",
+          "signerName",
+          "signerPosition"
+        )
+    ).to.be.rejectedWith("InvalidAddress");
+  });
 
-  // it("Reedem Voucher", async function () {
-  //   await contract.connect(owner).redeemVoucher(voucherHash);
-  // });
+  it("Success adding creditor A and retrive event emit", async function () {
+    const creditorAddress = await bankA.getAddress();
+    const creditorCode = hash32(codeBankA);
+    const institutionCode = "INSTITUTION_CODE";
+    const institutionName = "Institution Name";
+    const approvalDate = "2025-01-24";
+    const signerName = "Signer Name";
+    const signerPosition = "Signer Position";
 
-  // it("Should error Reedem Voucher cause voucher already redeemed", async function () {
-  //   await expect(
-  //     contract.connect(owner).redeemVoucher(voucherHash)
-  //   ).to.be.rejectedWith("VoucherAlreadyRedeemed");
-  // });
+    const tx = await contract
+      .connect(platform)
+      .functions[
+        "addCreditor(address,bytes32,string,string,string,string,string)"
+      ](
+        creditorAddress,
+        creditorCode,
+        institutionCode,
+        institutionName,
+        approvalDate,
+        signerName,
+        signerPosition
+      );
 
-  // it("Should error Reedem Voucher cause voucher not exist", async function () {
-  //   await expect(
-  //     contract.connect(owner).redeemVoucher(voucherHashError)
-  //   ).to.be.rejectedWith("VoucherNotExist");
-  // });
+    const receipt = await tx.wait();
+    const event = receipt.events?.find(
+      (e: { event: string }) => e.event === "CreditorAddedWithMetadata"
+    );
+    expect(event).to.not.be.undefined;
+    expect(event.args.creditorCode).to.equal(creditorCode);
+    expect(event.args.institutionCode).to.equal(institutionCode);
+    expect(event.args.institutionName).to.equal(institutionName);
+    expect(event.args.approvalDate).to.equal(approvalDate);
+    expect(event.args.signerName).to.equal(signerName);
+    expect(event.args.signerPosition).to.equal(signerPosition);
+  });
 
-  // it("Should return error from verify voucher cause already redeemed", async function () {
-  //   await expect(
-  //     contract.connect(other).verifyVoucher(voucherHash)
-  //   ).to.be.rejectedWith("VoucherAlreadyRedeemed");
-  // });
+  it("Success retrive public key credtiro A from code creditor A", async function () {
+    expect(await contract.getCreditor(hash32(codeBankA))).to.be.equal(
+      await bankA.getAddress()
+    );
+  });
 
-  // it("Should return error from extend voucher cause already redeemed", async function () {
-  //   await expect(
-  //     contract
-  //       .connect(owner)
-  //       .extendLevy(
-  //         voucherHash,
-  //         BigInt(Math.floor(Date.now() / 1000) + 86401 * 60)
-  //       )
-  //   ).to.be.rejectedWith("VoucherAlreadyRedeemed");
-  // });
+  it("Error adding creditor A same code creditor cause already exist", async function () {
+    await expect(
+      contract
+        .connect(platform)
+        .functions[
+          "addCreditor(address,bytes32,string,string,string,string,string)"
+        ](
+          await bankA.getAddress(),
+          hash32(codeBankA),
+          "institutionCode",
+          "institutionName",
+          "approvalDate",
+          "signerName",
+          "signerPosition"
+        )
+    ).to.be.rejectedWith("AlreadyExist");
+  });
+
+  it("Error create wallet for debtor because zero hash", async function () {
+    await expect(
+      contract
+        .connect(platform)
+        .addDebtor(
+          ethers.utils.hexZeroPad("0x0", 32),
+          await customer.getAddress()
+        )
+    ).to.be.rejectedWith("InvalidHash");
+  });
+
+  it("Error create wallet for debtor because wallet to set it up is zero address", async function () {
+    await expect(
+      contract
+        .connect(platform)
+        .addDebtor(hash32(nik), ethers.constants.AddressZero)
+    ).to.be.rejectedWith("InvalidAddress");
+  });
+
+  it("Success create wallet for debtor and mapping it to storage contract", async function () {
+    await contract
+      .connect(platform)
+      .addDebtor(hash32(nik), await customer.getAddress());
+  });
+
+  it("Success retrive wallet public key from NIK debtor", async function () {
+    expect(await contract.getDebtor(hash32(nik))).to.be.equal(
+      await customer.getAddress()
+    );
+  });
+
+  it("Error create wallet for debtor because already exist", async function () {
+    await expect(
+      contract
+        .connect(platform)
+        .addDebtor(hash32(nik), await customer.getAddress())
+    ).to.be.rejectedWith("AlreadyExist");
+  });
+
+  it("Error zero hash NIK and code creditor by adding Debitor to active customer for creditor A", async function () {
+    await expect(
+      contract
+        .connect(platform)
+        .addDebtorToCreditor(
+          ethers.utils.hexZeroPad("0x0", 32),
+          ethers.utils.hexZeroPad("0x0", 32),
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        )
+    ).to.be.rejectedWith("InvalidHash");
+  });
+
+  it("Error zero address other creditor from code creditor by adding Debitor to active customer for other creditor cause not registered", async function () {
+    await expect(
+      contract
+        .connect(platform)
+        .addDebtorToCreditor(
+          hash32(nik),
+          hash32(codeBankOther),
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        )
+    ).to.be.rejectedWith("InvalidAddress");
+  });
+
+  it("Success adding Debitor to active customer for creditor A and retrive event emit", async function () {
+    const nikDebtor = hash32(nik);
+    const name = "Name Debtor";
+    const creditorCode = hash32(codeBankA);
+    const creditorName = "Creditor A";
+    const applicationDate = "10-10-2010";
+    const approvalDate = "26-01-2025";
+    const urlKTP = "http://url-ktp-test";
+    const urlApproval = "http://url-approval-test";
+
+    const tx = await contract
+      .connect(platform)
+      .addDebtorToCreditor(
+        nikDebtor,
+        creditorCode,
+        name,
+        creditorName,
+        applicationDate,
+        approvalDate,
+        urlKTP,
+        urlApproval
+      );
+
+    const receipt = await tx.wait();
+    const event = receipt.events?.find(
+      (e: { event: string }) => e.event === "DebtorAddedWithMetadata"
+    );
+
+    expect(event).to.not.be.undefined;
+    expect(event.args.nik).to.equal(nikDebtor);
+    expect(event.args.name).to.equal(name);
+    expect(event.args.creditorCode).to.equal(creditorCode);
+    expect(event.args.creditorName).to.equal(creditorName);
+    expect(event.args.applicationDate).to.equal(applicationDate);
+    expect(event.args.approvalDate).to.equal(approvalDate);
+    expect(event.args.urlKTP).to.equal(urlKTP);
+    expect(event.args.urlApproval).to.equal(urlApproval);
+  });
+
+  it("Error adding Debitor to active customer for creditor A cause already registered", async function () {
+    await expect(
+      contract
+        .connect(platform)
+        .addDebtorToCreditor(
+          hash32(nik),
+          hash32(codeBankA),
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        )
+    ).to.be.rejectedWith("AlreadyExist");
+  });
+
+  it("Success adding creditor B and retrive event emit", async function () {
+    const creditorAddress = await bankB.getAddress();
+    const creditorCode = hash32(codeBankB);
+    const institutionCode = "INSTITUTION_CODE";
+    const institutionName = "Institution Name";
+    const approvalDate = "2025-01-24";
+    const signerName = "Signer Name";
+    const signerPosition = "Signer Position";
+
+    const tx = await contract
+      .connect(platform)
+      .functions[
+        "addCreditor(address,bytes32,string,string,string,string,string)"
+      ](
+        creditorAddress,
+        creditorCode,
+        institutionCode,
+        institutionName,
+        approvalDate,
+        signerName,
+        signerPosition
+      );
+
+    const receipt = await tx.wait();
+    const event = receipt.events?.find(
+      (e: { event: string }) => e.event === "CreditorAddedWithMetadata"
+    );
+    expect(event).to.not.be.undefined;
+    expect(event.args.creditorCode).to.equal(creditorCode);
+    expect(event.args.institutionCode).to.equal(institutionCode);
+    expect(event.args.institutionName).to.equal(institutionName);
+    expect(event.args.approvalDate).to.equal(approvalDate);
+    expect(event.args.signerName).to.equal(signerName);
+    expect(event.args.signerPosition).to.equal(signerPosition);
+  });
 });

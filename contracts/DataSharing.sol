@@ -4,16 +4,24 @@ pragma solidity 0.8.28;
 import {Delegation} from "./core//Delegation.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract DataSharing is Delegation {
+contract DataSharing is Delegation, Ownable {
+    error AddressNotEligible();
+    address private _platform;
+
     constructor(address _setNewPlatform) Ownable(msg.sender) {
-        _setPlatform(_setNewPlatform);
+        _platform = _setNewPlatform;
+    }
+
+    modifier onlyPlatform() {
+        if (msg.sender != _platform) revert AddressNotEligible();
+        _;
     }
 
     // ======================================================================
     //                              EVENTS
     // ======================================================================
     event CreditorAddedWithMetadata(
-        bytes32 indexed creditorAddress,
+        bytes32 indexed creditorCode,
         string institutionCode,
         string institutionName,
         string approvalDate,
@@ -24,7 +32,7 @@ contract DataSharing is Delegation {
     event DebtorAddedWithMetadata(
         bytes32 indexed nik,
         string name,
-        bytes32 creditorCode,
+        bytes32 indexed creditorCode,
         string creditorName,
         string applicationDate,
         string approvalDate,
@@ -56,14 +64,17 @@ contract DataSharing is Delegation {
     // ======================================================================
     //                              REGISTRATION
     // ======================================================================
-    function addDebtor(bytes32 nik, address debtorAddress) external {
+    function addDebtor(
+        bytes32 nik,
+        address debtorAddress
+    ) external onlyPlatform {
         _addDebtor(nik, debtorAddress);
     }
 
     function addCreditor(
         bytes32 creditorCode,
         address creditorAddress
-    ) external {
+    ) external onlyPlatform {
         _addCreditor(creditorCode, creditorAddress);
     }
 
@@ -75,7 +86,7 @@ contract DataSharing is Delegation {
         string memory approvalDate,
         string memory signerName,
         string memory signerPosition
-    ) external {
+    ) external onlyPlatform {
         _addCreditor(creditorCode, creditorAddress);
         emit CreditorAddedWithMetadata(
             creditorCode,
@@ -87,12 +98,16 @@ contract DataSharing is Delegation {
         );
     }
 
-    function removeCreditor(bytes32 creditorCode) external {
+    function removeCreditor(bytes32 creditorCode) external onlyPlatform {
         _removeCreditor(creditorCode);
     }
 
-    function removeDebtor(bytes32 nik) external {
+    function removeDebtor(bytes32 nik) external onlyPlatform {
         _removeDebtor(nik);
+    }
+
+    function getCreditor(bytes32 codeCreditor) external view returns (address) {
+        return _getCreditor(codeCreditor);
     }
 
     function getDebtor(bytes32 nik) external view returns (address) {
@@ -143,7 +158,6 @@ contract DataSharing is Delegation {
     function addDebtorToCreditor(
         bytes32 nik,
         bytes32 creditor,
-        address creditorAddress,
         string memory name,
         string memory creditorName,
         string memory applicationDate,
@@ -151,7 +165,7 @@ contract DataSharing is Delegation {
         string memory urlKTP,
         string memory urlApproval
     ) external onlyPlatform {
-        _addCreditorForDebtor(nik, creditorAddress);
+        _addCreditorForDebtor(nik, creditor);
         emit DebtorAddedWithMetadata(
             nik,
             name,
@@ -205,5 +219,9 @@ contract DataSharing is Delegation {
             endDate,
             quota
         );
+    }
+
+    function setPlatform(address _setNewPlatform) external onlyOwner {
+        _platform = _setNewPlatform;
     }
 }

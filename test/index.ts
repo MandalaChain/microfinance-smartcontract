@@ -17,7 +17,6 @@ describe(CollectionConfig.contractName, async function () {
   let bankB!: SignerWithAddress;
   let customer!: SignerWithAddress;
   let other!: SignerWithAddress;
-  const abiCoder = new utils.AbiCoder();
 
   const nik = "123456789";
   const nikOther = "987654321";
@@ -363,6 +362,15 @@ describe(CollectionConfig.contractName, async function () {
     ).to.be.rejectedWith("AlreadyExist");
   });
 
+  it("Retrive ceredtior A as active creditor from storage contract", async function () {
+    const [creditors, statuses] = await contract.getDebtorDataActiveCreditors(
+      hash32(nik)
+    );
+
+    expect(creditors).to.deep.equal([await bankA.getAddress()]);
+    expect(statuses).to.deep.equal([1]);
+  });
+
   it("Success adding creditor B and retrive event emit", async function () {
     const creditorAddress = await bankB.getAddress();
     const creditorCode = hash32(codeBankB);
@@ -397,5 +405,156 @@ describe(CollectionConfig.contractName, async function () {
     expect(event.args.approvalDate).to.equal(approvalDate);
     expect(event.args.signerName).to.equal(signerName);
     expect(event.args.signerPosition).to.equal(signerPosition);
+  });
+
+  it("Should Error When creditor ask for data sharing from not registered creditor", async function () {
+    await expect(
+      contract
+        .connect(other)
+        .functions["requestDelegation(bytes32,bytes32,bytes32)"](
+          hash32(nik),
+          hash32(codeBankOther),
+          hash32(codeBankA)
+        )
+    ).to.be.rejectedWith("NotEligible");
+
+    await expect(
+      contract
+        .connect(bankB)
+        .functions["requestDelegation(bytes32,bytes32,bytes32)"](
+          hash32(nik),
+          hash32(codeBankB),
+          hash32(codeBankOther)
+        )
+    ).to.be.rejectedWith("NotEligible");
+  });
+
+  it("Should Error When cosumer ask for data sharing from wrong provider of debtor data", async function () {
+    await expect(
+      contract
+        .connect(bankA)
+        .functions["requestDelegation(bytes32,bytes32,bytes32)"](
+          hash32(nik),
+          hash32(codeBankA),
+          hash32(codeBankB)
+        )
+    ).to.be.rejectedWith("ProviderNotEligible");
+  });
+
+  it("Should Error When cosumer ask for data sharing from provider but the debtor not registered", async function () {
+    await expect(
+      contract
+        .connect(bankB)
+        .functions["requestDelegation(bytes32,bytes32,bytes32)"](
+          hash32(nikOther),
+          hash32(codeBankB),
+          hash32(codeBankA)
+        )
+    ).to.be.rejectedWith("NikNeedRegistered");
+  });
+
+  it("Should Error When cosumer ask for data sharing from provider but the wallet runner is not same as consumer", async function () {
+    await expect(
+      contract
+        .connect(bankA)
+        .functions["requestDelegation(bytes32,bytes32,bytes32)"](
+          hash32(nik),
+          hash32(codeBankB),
+          hash32(codeBankA)
+        )
+    ).to.be.rejectedWith("AddressNotEligible");
+  });
+
+  it("Success request sharing data and retrive the event emit", async function () {
+    const nikDebtor = hash32(nik);
+    const creditorConsumerCode = hash32(codeBankB);
+    const creditorProviderCode = hash32(codeBankA);
+    const requestId = "request id";
+    const transactionId = "transaction id";
+    const referenceId = "reference id";
+    const requestDate = "request data";
+
+    const tx = await contract
+      .connect(bankB)
+      .functions[
+        "requestDelegation(bytes32,bytes32,bytes32,string,string,string,string)"
+      ](
+        nikDebtor,
+        creditorConsumerCode,
+        creditorProviderCode,
+        requestId,
+        transactionId,
+        referenceId,
+        requestDate
+      );
+
+    const receipt = await tx.wait();
+    const event = receipt.events?.find(
+      (e: { event: string }) => e.event === "DelegationRequestedMetadata"
+    );
+    expect(event).to.not.be.undefined;
+    expect(event.args.nik).to.equal(nikDebtor);
+    expect(event.args.requestId).to.equal(requestId);
+    expect(event.args.creditorConsumerCode).to.equal(creditorConsumerCode);
+    expect(event.args.creditorProviderCode).to.equal(creditorProviderCode);
+    expect(event.args.transactionId).to.equal(transactionId);
+    expect(event.args.referenceId).to.equal(referenceId);
+    expect(event.args.requestDate).to.equal(requestDate);
+  });
+
+  it("Should Error When cosumer ask for data sharing twice", async function () {
+    await expect(
+      contract
+        .connect(bankB)
+        .functions["requestDelegation(bytes32,bytes32,bytes32)"](
+          hash32(nik),
+          hash32(codeBankB),
+          hash32(codeBankA)
+        )
+    ).to.be.rejectedWith("RequestAlreadyExist");
+  });
+
+  it("Retrive ceredtiors as active creditor from storage contract", async function () {
+    const [creditors, statuses] = await contract.getDebtorDataActiveCreditors(
+      hash32(nik)
+    );
+
+    expect(creditors).to.deep.equal([
+      await bankA.getAddress(),
+      await bankB.getAddress(),
+    ]); // bank a and bank b
+    expect(statuses).to.deep.equal([1, 2]); // approve and pending
+  });
+
+  it("Should Error When provider approve delegate for data sharing from consumer but the wallet runner is not same as provider", async function () {
+    await expect(
+      contract
+        .connect(other)
+        .delegate(hash32(nik), hash32(codeBankB), hash32(codeBankA), 1)
+    ).to.be.rejectedWith("AddressNotEligible");
+  });
+
+  it("Success approve delegaton for data sharing", async function () {
+    const tx = await contract
+      .connect(bankA)
+      .delegate(hash32(nik), hash32(codeBankB), hash32(codeBankA), 1);
+
+    const receipt = await tx.wait();
+    const event = receipt.events?.find(
+      (e: { event: string }) => e.event === "Delegate"
+    );
+    expect(event).to.not.be.undefined;
+    expect(event.args.nik).to.equal(hash32(nik));
+    expect(event.args.creditorConsumerCode).to.equal(hash32(codeBankB));
+    expect(event.args.creditorProviderCode).to.equal(hash32(codeBankA));
+    expect(event.args.status).to.equal(1);
+  });
+
+  it("Shoudl error approving delegation twice", async function () {
+    await expect(
+      contract
+        .connect(bankA)
+        .delegate(hash32(nik), hash32(codeBankB), hash32(codeBankA), 1)
+    ).to.be.rejectedWith("InvalidStatusApproveRequest");
   });
 });

@@ -469,10 +469,10 @@ export interface DataSharing extends BaseContract {
 
   delegate: TypedContractMethod<
     [
-      _nik: BytesLike,
-      _consumer: BytesLike,
-      _provider: BytesLike,
-      _status: BigNumberish
+      nik: BytesLike,
+      consumer: BytesLike,
+      provider: BytesLike,
+      status: BigNumberish
     ],
     [void],
     "nonpayable"
@@ -606,10 +606,10 @@ export interface DataSharing extends BaseContract {
     nameOrSignature: "delegate"
   ): TypedContractMethod<
     [
-      _nik: BytesLike,
-      _consumer: BytesLike,
-      _provider: BytesLike,
-      _status: BigNumberish
+      nik: BytesLike,
+      consumer: BytesLike,
+      provider: BytesLike,
+      status: BigNumberish
     ],
     [void],
     "nonpayable"

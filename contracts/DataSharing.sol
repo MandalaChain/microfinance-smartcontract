@@ -5,7 +5,6 @@ import {Delegation} from "./core//Delegation.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract DataSharing is Delegation, Ownable {
-    error AddressNotEligible();
     address private _platform;
 
     constructor(address _setNewPlatform) Ownable(msg.sender) {
@@ -147,12 +146,12 @@ contract DataSharing is Delegation, Ownable {
     }
 
     function delegate(
-        bytes32 _nik,
-        bytes32 _consumer,
-        bytes32 _provider,
-        Status _status
+        bytes32 nik,
+        bytes32 consumer,
+        bytes32 provider,
+        Status status
     ) external {
-        _delegate(_nik, _consumer, _provider, _status);
+        _delegate(nik, consumer, provider, status);
     }
 
     function addDebtorToCreditor(

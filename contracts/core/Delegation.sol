@@ -9,6 +9,7 @@ abstract contract Delegation is Registration {
     error RequestAlreadyExist();
     error ProviderNotEligible();
     error InvalidStatusApproveRequest();
+    error AddressNotEligible();
 
     enum Function {
         DELEGATE,
@@ -80,10 +81,12 @@ abstract contract Delegation is Registration {
         Request memory _req = _request[_consumer][_provider];
 
         if (_function == Function.REQUEST) {
+            if (msg.sender != _consumer) revert AddressNotEligible();
             if (_req.status == Status.PENDING) revert RequestAlreadyExist();
         }
 
         if (_function == Function.DELEGATE) {
+            if (msg.sender != _provider) revert AddressNotEligible();
             if (_req.status != Status.PENDING) {
                 revert InvalidStatusApproveRequest();
             }
@@ -132,7 +135,7 @@ abstract contract Delegation is Registration {
                 _nik,
                 _codeConsumer,
                 _codeProvider,
-                Function.REQUEST
+                Function.DELEGATE
             );
 
         _request[_consumer][_provider].status = _status;
@@ -142,7 +145,10 @@ abstract contract Delegation is Registration {
     }
 
     // Add a creditor for a debtor
-    function _addCreditorForDebtor(bytes32 _nik, bytes32 _codeCreditor) internal {
+    function _addCreditorForDebtor(
+        bytes32 _nik,
+        bytes32 _codeCreditor
+    ) internal {
         _checkHash(_nik);
         _checkHash(_codeCreditor);
 

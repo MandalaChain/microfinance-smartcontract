@@ -11,11 +11,6 @@ abstract contract Delegation is Registration {
     error InvalidStatusApproveRequest();
     error AddressNotEligible();
 
-    enum Function {
-        DELEGATE,
-        REQUEST
-    }
-
     enum Status {
         REJECTED,
         APPROVED,
@@ -47,50 +42,37 @@ abstract contract Delegation is Registration {
 
     function _getCustomerStoraget(
         bytes32 _nik
-    ) private view returns (DebtorInfo storage) {
-        address _nikAddress = _getDebtor(_nik);
-        return _debtorInfo[_nikAddress];
+    ) private view returns (DebtorInfo storage, address) {
+        address _nikAddress = _debtors[_nik];
+        if (_nikAddress == address(0)) revert NikNeedRegistered();
+        return (_debtorInfo[_nikAddress], _nikAddress);
     }
 
     function _checkCompliance(
         bytes32 _nik,
         bytes32 _codeConsumer,
-        bytes32 _codeProvider,
-        Function _function
+        bytes32 _codeProvider
     )
         private
         view
         returns (address _nikAddress, address _consumer, address _provider)
     {
-        _checkHash(_nik);
-        _checkHash(_codeConsumer);
-        _checkHash(_codeProvider);
+        if (
+            _nik == bytes32(0) ||
+            _codeConsumer == bytes32(0) ||
+            _codeProvider == bytes32(0)
+        ) revert InvalidHash();
 
-        _nikAddress = _getDebtor(_nik);
-        if (_checkAddressNotZero(_nikAddress)) revert NikNeedRegistered();
-        _isCreditor(_codeConsumer);
-        _isCreditor(_codeProvider);
+        DebtorInfo storage _info;
+        (_info, _nikAddress) = _getCustomerStoraget(_nik);
 
-        _consumer = _getCreditor(_codeConsumer);
-        _provider = _getCreditor(_codeProvider);
+        _consumer = _isCreditor(_codeConsumer);
+        _provider = _isCreditor(_codeProvider);
 
-        DebtorInfo storage _info = _getCustomerStoraget(_nik);
         if (_info.creditorStatus[_provider] != Status.APPROVED) {
             revert ProviderNotEligible();
         }
-        Request memory _req = _request[_consumer][_provider];
 
-        if (_function == Function.REQUEST) {
-            if (msg.sender != _consumer) revert AddressNotEligible();
-            if (_req.status == Status.PENDING) revert RequestAlreadyExist();
-        }
-
-        if (_function == Function.DELEGATE) {
-            if (msg.sender != _provider) revert AddressNotEligible();
-            if (_req.status != Status.PENDING) {
-                revert InvalidStatusApproveRequest();
-            }
-        }
         return (_nikAddress, _consumer, _provider);
     }
 
@@ -104,12 +86,11 @@ abstract contract Delegation is Registration {
             address _nikAddress,
             address _consumer,
             address _provider
-        ) = _checkCompliance(
-                _nik,
-                _codeConsumer,
-                _codeProvider,
-                Function.REQUEST
-            );
+        ) = _checkCompliance(_nik, _codeConsumer, _codeProvider);
+
+        if (msg.sender != _consumer) revert AddressNotEligible();
+        if (_request[_consumer][_provider].status == Status.PENDING)
+            revert RequestAlreadyExist();
 
         _request[_consumer][_provider] = Request({
             status: Status.PENDING,
@@ -131,12 +112,12 @@ abstract contract Delegation is Registration {
             address _nikAddress,
             address _consumer,
             address _provider
-        ) = _checkCompliance(
-                _nik,
-                _codeConsumer,
-                _codeProvider,
-                Function.DELEGATE
-            );
+        ) = _checkCompliance(_nik, _codeConsumer, _codeProvider);
+
+        if (msg.sender != _provider) revert AddressNotEligible();
+        if (_request[_consumer][_provider].status != Status.PENDING) {
+            revert InvalidStatusApproveRequest();
+        }
 
         _request[_consumer][_provider].status = _status;
         _debtorInfo[_nikAddress].creditorStatus[_consumer] = _status;
@@ -149,13 +130,13 @@ abstract contract Delegation is Registration {
         bytes32 _nik,
         bytes32 _codeCreditor
     ) internal {
-        _checkHash(_nik);
-        _checkHash(_codeCreditor);
+        if (_nik == bytes32(0) || _codeCreditor == bytes32(0))
+            revert InvalidHash();
 
-        address _creditor = _getCreditor(_codeCreditor);
-        if (_checkAddressNotZero(_creditor)) revert InvalidAddress();
+        address _creditor = _isCreditor(_codeCreditor);
 
-        DebtorInfo storage _info = _getCustomerStoraget(_nik);
+        DebtorInfo storage _info;
+        (_info, ) = _getCustomerStoraget(_nik);
         if (_info.creditorStatus[_creditor] == Status.APPROVED)
             revert AlreadyExist();
         _info.creditorStatus[_creditor] = Status.APPROVED;
@@ -165,15 +146,16 @@ abstract contract Delegation is Registration {
     function _getDebtorStatuses(
         bytes32 _nik
     ) internal view returns (address[] memory, Status[] memory) {
-        DebtorInfo storage info = _getCustomerStoraget(_nik);
-        uint256 count = info.creditors.length;
+        DebtorInfo storage _info;
+        (_info, ) = _getCustomerStoraget(_nik);
+        uint256 count = _info.creditors.length;
         address[] memory creditorsList = new address[](count);
         Status[] memory statusesList = new Status[](count);
 
         for (uint256 i = 0; i < count; i++) {
-            address creditor = info.creditors[i];
+            address creditor = _info.creditors[i];
             creditorsList[i] = creditor;
-            statusesList[i] = info.creditorStatus[creditor];
+            statusesList[i] = _info.creditorStatus[creditor];
         }
         return (creditorsList, statusesList);
     }
@@ -182,7 +164,8 @@ abstract contract Delegation is Registration {
         bytes32 _nik,
         Status _status
     ) internal view returns (address[] memory) {
-        DebtorInfo storage _info = _getCustomerStoraget(_nik);
+        DebtorInfo storage _info;
+        (_info, ) = _getCustomerStoraget(_nik);
         uint256 _count = 0;
         for (uint256 i = 0; i < _info.creditors.length; i++) {
             if (_info.creditorStatus[_info.creditors[i]] == _status) {

@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+/**
+ * @title Registration
+ * @notice Handles creditor and debtor registrations with optimized storage.
+ */
 abstract contract Registration {
     error NotEligible();
     error AlreadyExist();
@@ -8,63 +12,38 @@ abstract contract Registration {
     error InvalidAddress();
     error InvalidHash();
 
-    // mapping from platform that customer is registered from NIK
-    mapping(bytes32 => address) private _debtors;
-    // mapping from platform that debtors is registered
-    mapping(bytes32 => address) private _creditors;
+    mapping(bytes32 => address) internal _debtors;
+    mapping(bytes32 => address) internal _creditors;
 
-    function _checkHash(bytes32 _hashInput) internal pure {
-        if(_hashInput == bytes32(0)) revert InvalidHash();
-    }
-
-    function _checkAddressNotZero(
-        address _checkAddress
-    ) internal pure returns (bool) {
-        return _checkAddress == address(0);
-    }
-
-    // check address is eligible as debtor
-    function _isCreditor(bytes32 _creditorCode) internal view {
-        address _address = _creditors[_creditorCode];
-        if (_checkAddressNotZero(_address)) revert NotEligible();
+    function _isCreditor(bytes32 _creditorCode) internal view returns (address){
+        address _creditor = _creditors[_creditorCode];
+        if (_creditor == address(0)) revert NotEligible();
+        return _creditor;
     }
 
     function _addDebtor(bytes32 _nik, address _addressCustomer) internal {
-        _checkHash(_nik);
-        if (_checkAddressNotZero(_addressCustomer)) revert InvalidAddress();
-        if (!_checkAddressNotZero(_getDebtor(_nik))) revert AlreadyExist();
+        if (_nik == bytes32(0)) revert InvalidHash();
+        if (_addressCustomer == address(0)) revert InvalidAddress();
+        if (_debtors[_nik] != address(0)) revert AlreadyExist();
         _debtors[_nik] = _addressCustomer;
     }
 
     function _addCreditor(bytes32 _creditorCode, address _setAddress) internal {
-        _checkHash(_creditorCode);
-        if (_checkAddressNotZero(_setAddress)) revert InvalidAddress();
-        address _address = _creditors[_creditorCode];
-        if (!_checkAddressNotZero(_address)) revert AlreadyExist();
+        if (_creditorCode == bytes32(0)) revert InvalidHash();
+        if (_setAddress == address(0)) revert InvalidAddress();
+        if (_creditors[_creditorCode] != address(0)) revert AlreadyExist();
         _creditors[_creditorCode] = _setAddress;
     }
 
     function _removeCreditor(bytes32 _creditorCode) internal {
-        _checkHash(_creditorCode);
-        address _address = _creditors[_creditorCode];
-        if (_checkAddressNotZero(_address)) revert AlreadyRemoved();
+        if (_creditorCode == bytes32(0)) revert InvalidHash();
+        if (_creditors[_creditorCode] == address(0)) revert AlreadyRemoved();
         delete _creditors[_creditorCode];
     }
 
     function _removeDebtor(bytes32 _nik) internal {
-        _checkHash(_nik);
-        address _address = _debtors[_nik];
-        if (_checkAddressNotZero(_address)) revert AlreadyRemoved();
+        if (_nik == bytes32(0)) revert InvalidHash();
+        if (_debtors[_nik] == address(0)) revert AlreadyRemoved();
         delete _debtors[_nik];
-    }
-
-    function _getCreditor(
-        bytes32 _codeCreditor
-    ) internal view returns (address) {
-        return _creditors[_codeCreditor];
-    }
-
-    function _getDebtor(bytes32 _nik) internal view returns (address) {
-        return _debtors[_nik];
     }
 }

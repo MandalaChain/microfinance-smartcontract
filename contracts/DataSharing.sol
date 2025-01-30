@@ -106,11 +106,11 @@ contract DataSharing is Delegation, Ownable {
     }
 
     function getCreditor(bytes32 codeCreditor) external view returns (address) {
-        return _getCreditor(codeCreditor);
+        return _creditors[codeCreditor];
     }
 
     function getDebtor(bytes32 nik) external view returns (address) {
-        return _getDebtor(nik);
+        return _debtors[nik];
     }
 
     // ======================================================================

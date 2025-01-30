@@ -64,21 +64,21 @@ describe(CollectionConfig.contractName, async function () {
       ethers.constants.AddressZero
     );
 
-    expect(
-      await contract.getDebtorDataActiveCreditors(hash32(nik))
-    ).to.deep.equal([[], []]);
+    await expect(
+       contract.getDebtorDataActiveCreditors(hash32(nik))
+    ).to.be.rejectedWith("NikNeedRegistered");
 
-    expect(
-      await contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(0))
-    ).to.deep.equal([]);
+    await expect(
+       contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(0))
+    ).to.be.rejectedWith("NikNeedRegistered");
 
-    expect(
-      await contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(1))
-    ).to.deep.equal([]);
+    await expect(
+       contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(1))
+    ).to.be.rejectedWith("NikNeedRegistered");
 
-    expect(
-      await contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(2))
-    ).to.deep.equal([]);
+    await expect(
+      contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(2))
+    ).to.be.rejectedWith("NikNeedRegistered");
   });
 
   it("Check only platform", async function () {
@@ -303,7 +303,7 @@ describe(CollectionConfig.contractName, async function () {
           "",
           ""
         )
-    ).to.be.rejectedWith("InvalidAddress");
+    ).to.be.rejectedWith("NotEligible");
   });
 
   it("Success adding Debitor to active customer for creditor A and retrive event emit", async function () {

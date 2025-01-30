@@ -19,7 +19,7 @@
  * @custom:error InvalidHash            - Thrown when one of the provided identifiers (NIK/creditor code) is invalid (zero).
  */
 
-pragma solidity 0.8.28;
+pragma solidity ^0.8.20;
 
 import {Registration} from "./Registration.sol";
 

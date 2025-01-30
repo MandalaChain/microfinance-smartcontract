@@ -23,7 +23,7 @@
  * @custom:error InvalidStatusApproveRequest - Thrown when trying to approve/reject a non-pending request.
  */
 
-pragma solidity 0.8.28;
+pragma solidity ^0.8.20;
 
 import {Delegation} from "./core/Delegation.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -53,7 +53,7 @@ contract DataSharing is Delegation, Ownable {
      * @param _setNewPlatform The address of the platform authorized for special operations.
      */
     constructor(address _setNewPlatform) Ownable(msg.sender) {
-        _platform = _setNewPlatform;
+        setPlatform(_setNewPlatform);
     }
 
     /**
@@ -68,6 +68,12 @@ contract DataSharing is Delegation, Ownable {
     // ------------------------------------------------------------------------
     //                                Events
     // ------------------------------------------------------------------------
+    /**
+     * @notice Emitted when a new platform address is change or set.
+     * @param platform          The unique identifier (hashed) for the creditor.
+     */
+    event SetNewAddressPlatform(address indexed platform);
+
     /**
      * @notice Emitted when a new creditor is added with supplemental metadata.
      * @param creditorCode      The unique identifier (hashed) for the creditor.
@@ -423,7 +429,9 @@ contract DataSharing is Delegation, Ownable {
      *      Restricted to the contract owner (via `onlyOwner`).
      * @param setNewPlatform The new platform address.
      */
-    function setPlatform(address setNewPlatform) external onlyOwner {
+    function setPlatform(address setNewPlatform) public onlyOwner {
+        if(setNewPlatform == address(0)) revert InvalidAddress();
         _platform = setNewPlatform;
+        emit SetNewAddressPlatform(setNewPlatform);
     }
 }

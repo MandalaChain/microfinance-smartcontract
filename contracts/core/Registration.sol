@@ -16,7 +16,7 @@
  * @custom:error InvalidAddress - Thrown when an invalid address is provided.
  * @custom:error InvalidHash - Thrown when an invalid identifier hash is provided.
  */
-pragma solidity 0.8.28;
+pragma solidity ^0.8.20;
 
 /**
  * @title Registration

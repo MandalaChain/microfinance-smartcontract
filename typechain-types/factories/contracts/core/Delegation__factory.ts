@@ -60,11 +60,6 @@ const _abi = [
     type: "error",
   },
   {
-    inputs: [],
-    name: "RequestNotFound",
-    type: "error",
-  },
-  {
     anonymous: false,
     inputs: [
       {

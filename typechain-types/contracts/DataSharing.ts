@@ -54,6 +54,7 @@ export interface DataSharingInterface extends Interface {
       | "DelegationRequestedMetadata"
       | "OwnershipTransferred"
       | "PackagePurchased"
+      | "SetNewAddressPlatform"
   ): EventFragment;
 
   encodeFunctionData(
@@ -383,6 +384,18 @@ export namespace PackagePurchasedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace SetNewAddressPlatformEvent {
+  export type InputTuple = [platform: AddressLike];
+  export type OutputTuple = [platform: string];
+  export interface OutputObject {
+    platform: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export interface DataSharing extends BaseContract {
   connect(runner?: ContractRunner | null): DataSharing;
   waitForDeployment(): Promise<this>;
@@ -479,7 +492,7 @@ export interface DataSharing extends BaseContract {
   >;
 
   getActiveCreditorsByStatus: TypedContractMethod<
-    [_nik: BytesLike, _status: BigNumberish],
+    [nik: BytesLike, status: BigNumberish],
     [string[]],
     "view"
   >;
@@ -489,7 +502,7 @@ export interface DataSharing extends BaseContract {
   getDebtor: TypedContractMethod<[nik: BytesLike], [string], "view">;
 
   getDebtorDataActiveCreditors: TypedContractMethod<
-    [_nik: BytesLike],
+    [nik: BytesLike],
     [[string[], bigint[]]],
     "view"
   >;
@@ -522,7 +535,7 @@ export interface DataSharing extends BaseContract {
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
 
   "requestDelegation(bytes32,bytes32,bytes32)": TypedContractMethod<
-    [_nik: BytesLike, _consumer: BytesLike, _provider: BytesLike],
+    [nik: BytesLike, consumer: BytesLike, provider: BytesLike],
     [void],
     "nonpayable"
   >;
@@ -530,8 +543,8 @@ export interface DataSharing extends BaseContract {
   "requestDelegation(bytes32,bytes32,bytes32,string,string,string,string)": TypedContractMethod<
     [
       nik: BytesLike,
-      _consumer: BytesLike,
-      _provider: BytesLike,
+      consumer: BytesLike,
+      provider: BytesLike,
       requestId: string,
       transactionId: string,
       referenceId: string,
@@ -542,7 +555,7 @@ export interface DataSharing extends BaseContract {
   >;
 
   setPlatform: TypedContractMethod<
-    [_setNewPlatform: AddressLike],
+    [setNewPlatform: AddressLike],
     [void],
     "nonpayable"
   >;
@@ -617,7 +630,7 @@ export interface DataSharing extends BaseContract {
   getFunction(
     nameOrSignature: "getActiveCreditorsByStatus"
   ): TypedContractMethod<
-    [_nik: BytesLike, _status: BigNumberish],
+    [nik: BytesLike, status: BigNumberish],
     [string[]],
     "view"
   >;
@@ -629,7 +642,7 @@ export interface DataSharing extends BaseContract {
   ): TypedContractMethod<[nik: BytesLike], [string], "view">;
   getFunction(
     nameOrSignature: "getDebtorDataActiveCreditors"
-  ): TypedContractMethod<[_nik: BytesLike], [[string[], bigint[]]], "view">;
+  ): TypedContractMethod<[nik: BytesLike], [[string[], bigint[]]], "view">;
   getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
@@ -661,7 +674,7 @@ export interface DataSharing extends BaseContract {
   getFunction(
     nameOrSignature: "requestDelegation(bytes32,bytes32,bytes32)"
   ): TypedContractMethod<
-    [_nik: BytesLike, _consumer: BytesLike, _provider: BytesLike],
+    [nik: BytesLike, consumer: BytesLike, provider: BytesLike],
     [void],
     "nonpayable"
   >;
@@ -670,8 +683,8 @@ export interface DataSharing extends BaseContract {
   ): TypedContractMethod<
     [
       nik: BytesLike,
-      _consumer: BytesLike,
-      _provider: BytesLike,
+      consumer: BytesLike,
+      provider: BytesLike,
       requestId: string,
       transactionId: string,
       referenceId: string,
@@ -682,7 +695,7 @@ export interface DataSharing extends BaseContract {
   >;
   getFunction(
     nameOrSignature: "setPlatform"
-  ): TypedContractMethod<[_setNewPlatform: AddressLike], [void], "nonpayable">;
+  ): TypedContractMethod<[setNewPlatform: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
@@ -728,6 +741,13 @@ export interface DataSharing extends BaseContract {
     PackagePurchasedEvent.InputTuple,
     PackagePurchasedEvent.OutputTuple,
     PackagePurchasedEvent.OutputObject
+  >;
+  getEvent(
+    key: "SetNewAddressPlatform"
+  ): TypedContractEvent<
+    SetNewAddressPlatformEvent.InputTuple,
+    SetNewAddressPlatformEvent.OutputTuple,
+    SetNewAddressPlatformEvent.OutputObject
   >;
 
   filters: {
@@ -795,6 +815,17 @@ export interface DataSharing extends BaseContract {
       PackagePurchasedEvent.InputTuple,
       PackagePurchasedEvent.OutputTuple,
       PackagePurchasedEvent.OutputObject
+    >;
+
+    "SetNewAddressPlatform(address)": TypedContractEvent<
+      SetNewAddressPlatformEvent.InputTuple,
+      SetNewAddressPlatformEvent.OutputTuple,
+      SetNewAddressPlatformEvent.OutputObject
+    >;
+    SetNewAddressPlatform: TypedContractEvent<
+      SetNewAddressPlatformEvent.InputTuple,
+      SetNewAddressPlatformEvent.OutputTuple,
+      SetNewAddressPlatformEvent.OutputObject
     >;
   };
 }

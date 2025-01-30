@@ -71,7 +71,7 @@ abstract contract Delegation is Registration {
      */
     struct DebtorInfo {
         mapping(address => Status) creditorStatus;
-        address[] creditors; 
+        address[] creditors;
         // @notice You can add more metadata here if needed.
     }
 
@@ -120,18 +120,14 @@ abstract contract Delegation is Registration {
      */
     function _getCustomerStoraget(
         bytes32 _nik
-    )
-        private
-        view
-        returns (DebtorInfo storage debtorInfo, address nikAddress)
-    {
+    ) private view returns (DebtorInfo storage debtorInfo, address nikAddress) {
         address _nikAddress = _debtors[_nik];
         if (_nikAddress == address(0)) revert NikNeedRegistered();
         return (_debtorInfo[_nikAddress], _nikAddress);
     }
 
     /**
-     * @dev Common checks used in both `_requestDelegation` and `_delegate`. 
+     * @dev Common checks used in both `_requestDelegation` and `_delegate`.
      *      Ensures that NIK and creditor codes are valid, and that the provider is approved.
      * @param _nik          The unique identifier (hashed) for the debtor.
      * @param _codeConsumer The hashed code for the creditor acting as consumer.
@@ -149,11 +145,7 @@ abstract contract Delegation is Registration {
     )
         private
         view
-        returns (
-            address _nikAddress,
-            address _consumer,
-            address _provider
-        )
+        returns (address _nikAddress, address _consumer, address _provider)
     {
         if (
             _nik == bytes32(0) ||
@@ -187,9 +179,7 @@ abstract contract Delegation is Registration {
         bytes32 _nik,
         bytes32 _codeConsumer,
         bytes32 _codeProvider
-    )
-        internal
-    {
+    ) internal {
         (
             address _nikAddress,
             address _consumer,
@@ -229,9 +219,7 @@ abstract contract Delegation is Registration {
         bytes32 _codeConsumer,
         bytes32 _codeProvider,
         Status _status
-    )
-        internal
-    {
+    ) internal {
         (
             address _nikAddress,
             address _consumer,
@@ -260,9 +248,7 @@ abstract contract Delegation is Registration {
     function _addCreditorForDebtor(
         bytes32 _nik,
         bytes32 _codeCreditor
-    )
-        internal
-    {
+    ) internal {
         if (_nik == bytes32(0) || _codeCreditor == bytes32(0))
             revert InvalidHash();
 
@@ -309,6 +295,21 @@ abstract contract Delegation is Registration {
     }
 
     /**
+     * @dev Retrieves the status of a specific creditor for a given debtor status (APPROVED, REJECTED, or PENDING).
+     * @param _nik      The unique identifier (hashed) for the debtor.
+     * @param _creditor The unique identifier (hashed) for the creditor.
+     * @return _status  An status from request delegation.
+     */
+    function _getStatusRequest(
+        bytes32 _nik,
+        bytes32 _creditor
+    ) internal view returns (Status) {
+        (, address _nikAddress) = _getCustomerStoraget(_nik);
+        address _creditorAddress = _isCreditor(_creditor);
+        return _debtorInfo[_nikAddress].creditorStatus[_creditorAddress];
+    }
+
+    /**
      * @dev Retrieves all creditors for a debtor that match a specific status (APPROVED, REJECTED, or PENDING).
      * @param _nik    The unique identifier (hashed) for the debtor.
      * @param _status The `Status` to filter by.
@@ -318,11 +319,7 @@ abstract contract Delegation is Registration {
     function _getActiveCreditorsByStatus(
         bytes32 _nik,
         Status _status
-    )
-        internal
-        view
-        returns (address[] memory _getCreditors)
-    {
+    ) internal view returns (address[] memory _getCreditors) {
         DebtorInfo storage _info;
         (_info, ) = _getCustomerStoraget(_nik);
 

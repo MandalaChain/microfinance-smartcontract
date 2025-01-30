@@ -35,6 +35,7 @@ export interface DataSharingInterface extends Interface {
       | "getCreditor"
       | "getDebtor"
       | "getDebtorDataActiveCreditors"
+      | "getStatusRequest"
       | "owner"
       | "purchasePackage"
       | "removeCreditor"
@@ -101,6 +102,10 @@ export interface DataSharingInterface extends Interface {
   encodeFunctionData(
     functionFragment: "getDebtorDataActiveCreditors",
     values: [BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getStatusRequest",
+    values: [BytesLike, BytesLike]
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
@@ -170,6 +175,10 @@ export interface DataSharingInterface extends Interface {
   decodeFunctionResult(functionFragment: "getDebtor", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getDebtorDataActiveCreditors",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getStatusRequest",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
@@ -507,6 +516,12 @@ export interface DataSharing extends BaseContract {
     "view"
   >;
 
+  getStatusRequest: TypedContractMethod<
+    [nik: BytesLike, creditor: BytesLike],
+    [bigint],
+    "view"
+  >;
+
   owner: TypedContractMethod<[], [string], "view">;
 
   purchasePackage: TypedContractMethod<
@@ -643,6 +658,13 @@ export interface DataSharing extends BaseContract {
   getFunction(
     nameOrSignature: "getDebtorDataActiveCreditors"
   ): TypedContractMethod<[nik: BytesLike], [[string[], bigint[]]], "view">;
+  getFunction(
+    nameOrSignature: "getStatusRequest"
+  ): TypedContractMethod<
+    [nik: BytesLike, creditor: BytesLike],
+    [bigint],
+    "view"
+  >;
   getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;

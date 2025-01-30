@@ -3,15 +3,15 @@
  *
  * @title DataSharing Contract
  * @dev This contract extends the `Delegation` contract to manage data sharing
- *      and delegation requests among creditors and debtors. It leverages 
- *      mapping-based storage for efficient lookups and includes metadata 
+ *      and delegation requests among creditors and debtors. It leverages
+ *      mapping-based storage for efficient lookups and includes metadata
  *      emission for tracking important actions.
  *
  * ## Features:
  * - Integrates with the `Delegation` system for creditor-debtor relationships.
  * - Supports adding and removing debtors/creditors with associated metadata.
  * - Includes event emission for purchase packages and delegation requests.
- * - Allows only the platform address (and contract owner for platform updates) to perform 
+ * - Allows only the platform address (and contract owner for platform updates) to perform
  *   certain registration and removal functions.
  *
  * @custom:error AddressNotEligible - Thrown when `msg.sender` is not the expected address (e.g., `_platform`).
@@ -39,7 +39,7 @@ contract DataSharing is Delegation, Ownable {
     //                          State Variables
     // ------------------------------------------------------------------------
     /**
-     * @dev The platform address allowed to perform sensitive registration 
+     * @dev The platform address allowed to perform sensitive registration
      *      and management functions.
      */
     address private _platform;
@@ -319,7 +319,7 @@ contract DataSharing is Delegation, Ownable {
     }
 
     /**
-     * @dev Assigns a debtor to a creditor with an APPROVED status, 
+     * @dev Assigns a debtor to a creditor with an APPROVED status,
      *      then emits metadata for the new relationship.
      * @param nik             The unique identifier (hashed) for the debtor.
      * @param creditor        The code (hashed) of the creditor.
@@ -384,6 +384,19 @@ contract DataSharing is Delegation, Ownable {
         return _getActiveCreditorsByStatus(nik, status);
     }
 
+    /**
+     * @dev Retrieves the status of a specific creditor for a given debtor status (APPROVED, REJECTED, or PENDING).
+     * @param nik      The unique identifier (hashed) for the debtor.
+     * @param creditor The unique identifier (hashed) for the creditor.
+     * @return status  An status from request delegation.
+     */
+    function getStatusRequest(
+        bytes32 nik,
+        bytes32 creditor
+    ) external view returns (Status) {
+        return _getStatusRequest(nik, creditor);
+    }
+
     // ------------------------------------------------------------------------
     //                              Purchases
     // ------------------------------------------------------------------------
@@ -430,7 +443,7 @@ contract DataSharing is Delegation, Ownable {
      * @param setNewPlatform The new platform address.
      */
     function setPlatform(address setNewPlatform) public onlyOwner {
-        if(setNewPlatform == address(0)) revert InvalidAddress();
+        if (setNewPlatform == address(0)) revert InvalidAddress();
         _platform = setNewPlatform;
         emit SetNewAddressPlatform(setNewPlatform);
     }

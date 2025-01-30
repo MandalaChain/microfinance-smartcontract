@@ -12,7 +12,6 @@
  * - Mapping-based storage for efficient lookups.
  *
  * @custom:error NikNeedRegistered      - Thrown when the provided NIK is not yet registered.
- * @custom:error RequestNotFound        - Thrown when a requested delegation record does not exist.
  * @custom:error RequestAlreadyExist    - Thrown when a similar pending request already exists.
  * @custom:error ProviderNotEligible    - Thrown when the provider is not in an approved status.
  * @custom:error InvalidStatusApproveRequest - Thrown when attempting to approve/reject a non-pending request.
@@ -34,7 +33,6 @@ abstract contract Delegation is Registration {
     //                              Custom Errors
     // ------------------------------------------------------------------------
     error NikNeedRegistered();
-    error RequestNotFound();
     error RequestAlreadyExist();
     error ProviderNotEligible();
     error InvalidStatusApproveRequest();

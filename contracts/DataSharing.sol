@@ -251,24 +251,24 @@ contract DataSharing is Delegation, Ownable {
     // ------------------------------------------------------------------------
     /**
      * @dev Requests a delegation from one creditor (consumer) to another (provider) for a debtor (NIK).
-     * @param _nik      The unique identifier (hashed) of the debtor.
-     * @param _consumer The code (hashed) of the creditor acting as consumer.
-     * @param _provider The code (hashed) of the creditor acting as provider.
+     * @param nik      The unique identifier (hashed) of the debtor.
+     * @param consumer The code (hashed) of the creditor acting as consumer.
+     * @param provider The code (hashed) of the creditor acting as provider.
      * @notice Reverts if the caller is not the consumer or if an identical request is already pending.
      */
     function requestDelegation(
-        bytes32 _nik,
-        bytes32 _consumer,
-        bytes32 _provider
+        bytes32 nik,
+        bytes32 consumer,
+        bytes32 provider
     ) external {
-        _requestDelegation(_nik, _consumer, _provider);
+        _requestDelegation(nik, consumer, provider);
     }
 
     /**
      * @dev Overloaded version that also emits additional metadata for the delegation request.
      * @param nik          The unique identifier (hashed) of the debtor.
-     * @param _consumer    The code (hashed) of the creditor acting as consumer.
-     * @param _provider    The code (hashed) of the creditor acting as provider.
+     * @param consumer    The code (hashed) of the creditor acting as consumer.
+     * @param provider    The code (hashed) of the creditor acting as provider.
      * @param requestId    A unique request ID.
      * @param transactionId A reference to an external transaction.
      * @param referenceId   Another external reference ID.
@@ -276,19 +276,19 @@ contract DataSharing is Delegation, Ownable {
      */
     function requestDelegation(
         bytes32 nik,
-        bytes32 _consumer,
-        bytes32 _provider,
+        bytes32 consumer,
+        bytes32 provider,
         string memory requestId,
         string memory transactionId,
         string memory referenceId,
         string memory requestDate
     ) external {
-        _requestDelegation(nik, _consumer, _provider);
+        _requestDelegation(nik, consumer, provider);
         emit DelegationRequestedMetadata(
             nik,
             requestId,
-            _consumer,
-            _provider,
+            consumer,
+            provider,
             transactionId,
             referenceId,
             requestDate
@@ -350,32 +350,32 @@ contract DataSharing is Delegation, Ownable {
 
     /**
      * @dev Retrieves all creditors for a given debtor, along with their respective statuses.
-     * @param _nik The unique identifier (hashed) for the debtor.
+     * @param nik The unique identifier (hashed) for the debtor.
      * @return An array of creditor addresses and an array of corresponding statuses.
      * @notice Reverts if `_nik` is not registered.
      */
     function getDebtorDataActiveCreditors(
-        bytes32 _nik
+        bytes32 nik
     ) external view returns (address[] memory, Status[] memory) {
         (
             address[] memory creditorList,
             Status[] memory statusList
-        ) = _getDebtorStatuses(_nik);
+        ) = _getDebtorStatuses(nik);
         return (creditorList, statusList);
     }
 
     /**
      * @dev Returns the list of creditor addresses for a given debtor that match a specific status.
-     * @param _nik    The unique identifier (hashed) for the debtor.
-     * @param _status The status to filter (REJECTED, APPROVED, or PENDING).
+     * @param nik    The unique identifier (hashed) for the debtor.
+     * @param status The status to filter (REJECTED, APPROVED, or PENDING).
      * @return An array of creditor addresses matching the given status.
      * @notice Reverts if `_nik` is not registered.
      */
     function getActiveCreditorsByStatus(
-        bytes32 _nik,
-        Status _status
+        bytes32 nik,
+        Status status
     ) external view returns (address[] memory) {
-        return _getActiveCreditorsByStatus(_nik, _status);
+        return _getActiveCreditorsByStatus(nik, status);
     }
 
     // ------------------------------------------------------------------------
@@ -421,9 +421,9 @@ contract DataSharing is Delegation, Ownable {
     /**
      * @dev Updates the platform address authorized to perform special operations.
      *      Restricted to the contract owner (via `onlyOwner`).
-     * @param _setNewPlatform The new platform address.
+     * @param setNewPlatform The new platform address.
      */
-    function setPlatform(address _setNewPlatform) external onlyOwner {
-        _platform = _setNewPlatform;
+    function setPlatform(address setNewPlatform) external onlyOwner {
+        _platform = setNewPlatform;
     }
 }

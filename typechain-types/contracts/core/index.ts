@@ -2,4 +2,5 @@
 /* tslint:disable */
 /* eslint-disable */
 export type { Delegation } from "./Delegation";
+export type { MetaTransaction } from "./MetaTransaction";
 export type { Registration } from "./Registration";

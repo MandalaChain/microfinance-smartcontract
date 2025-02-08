@@ -26,7 +26,7 @@
 pragma solidity ^0.8.20;
 
 import {Delegation} from "./core/Delegation.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {MetaTransaction, EIP712, Ownable} from "./core/MetaTransaction.sol";
 
 /**
  * @title DataSharing
@@ -34,7 +34,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  *         while emitting metadata-driven events for tracking and auditing.
  * @dev Inherits from `Delegation` (which itself extends `Registration`) and `Ownable`.
  */
-contract DataSharing is Delegation, Ownable {
+contract DataSharing is Delegation, MetaTransaction {
     // ------------------------------------------------------------------------
     //                          State Variables
     // ------------------------------------------------------------------------
@@ -51,8 +51,14 @@ contract DataSharing is Delegation, Ownable {
     /**
      * @dev Sets the initial platform address and initializes `Ownable` with the contract deployer.
      * @param _setNewPlatform The address of the platform authorized for special operations.
+     * @param _domain         The domain name for EIP712.
+     * @param _version        The contract version for EIP712.
      */
-    constructor(address _setNewPlatform) Ownable(msg.sender) {
+    constructor(
+        address _setNewPlatform,
+        string memory _domain,
+        string memory _version
+    ) Ownable(msg.sender) EIP712(_domain, _version) {
         setPlatform(_setNewPlatform);
     }
 
@@ -61,7 +67,7 @@ contract DataSharing is Delegation, Ownable {
      *      Reverts with `AddressNotEligible` if the caller is not `_platform`.
      */
     modifier onlyPlatform() {
-        if (msg.sender != _platform) revert AddressNotEligible();
+        if (_msgSender() != _platform) revert AddressNotEligible();
         _;
     }
 
@@ -267,7 +273,7 @@ contract DataSharing is Delegation, Ownable {
         bytes32 consumer,
         bytes32 provider
     ) external {
-        _requestDelegation(nik, consumer, provider);
+        _requestDelegation(_msgSender(), nik, consumer, provider);
     }
 
     /**
@@ -289,7 +295,7 @@ contract DataSharing is Delegation, Ownable {
         string memory referenceId,
         string memory requestDate
     ) external {
-        _requestDelegation(nik, consumer, provider);
+        _requestDelegation(_msgSender(), nik, consumer, provider);
         emit DelegationRequestedMetadata(
             nik,
             requestId,
@@ -315,7 +321,7 @@ contract DataSharing is Delegation, Ownable {
         bytes32 provider,
         Status status
     ) external {
-        _delegate(nik, consumer, provider, status);
+        _delegate(_msgSender(), nik, consumer, provider, status);
     }
 
     /**
@@ -446,5 +452,29 @@ contract DataSharing is Delegation, Ownable {
         if (setNewPlatform == address(0)) revert InvalidAddress();
         _platform = setNewPlatform;
         emit SetNewAddressPlatform(setNewPlatform);
+    }
+
+    // ------------------------------------------------------------------------
+    //                             EIP712 Functions
+    // ------------------------------------------------------------------------
+    /**
+     * @dev This function is used to execute a meta transaction.
+     * @param from         The sender of the meta transaction.
+     * @param nonce        The nonce associated with the meta transaction.
+     * @param functionCall The function call associated with the meta transaction.
+     * @param signature    The signature of the meta transaction.
+     *
+     * @notice This function uses the `verify` function from the `EIP712` library to verify the signature.
+     *         It is a public function that can be called by any address.
+     *         It takes in four parameters: the sender, nonce, function call, and signature.
+     *         It emits a `MetaTransactionExecuted` event.
+     */
+    function executeMetaTransaction(
+        address from,
+        uint256 nonce,
+        bytes calldata functionCall,
+        bytes calldata signature
+    ) external {
+        _executeMetaTransaction(from, nonce, functionCall, signature);
     }
 }

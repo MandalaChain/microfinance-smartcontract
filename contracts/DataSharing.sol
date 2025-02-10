@@ -474,7 +474,7 @@ contract DataSharing is Delegation, MetaTransaction {
         uint256 nonce,
         bytes calldata functionCall,
         bytes calldata signature
-    ) external {
+    ) external onlyPlatform {
         _executeMetaTransaction(from, nonce, functionCall, signature);
     }
 }

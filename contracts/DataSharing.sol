@@ -294,7 +294,7 @@ contract DataSharing is Delegation, MetaTransaction {
         string memory transactionId,
         string memory referenceId,
         string memory requestDate
-    ) external {
+    ) external onlyPlatform {
         _requestDelegation(_msgSender(), nik, consumer, provider);
         emit DelegationRequestedMetadata(
             nik,
@@ -320,7 +320,7 @@ contract DataSharing is Delegation, MetaTransaction {
         bytes32 consumer,
         bytes32 provider,
         Status status
-    ) external {
+    ) external onlyPlatform{
         _delegate(_msgSender(), nik, consumer, provider, status);
     }
 

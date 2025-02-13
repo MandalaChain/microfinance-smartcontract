@@ -48,6 +48,7 @@ abstract contract Delegation is Registration {
      *      - PENDING:  The request is awaiting approval or rejection.
      */
     enum Status {
+        NONE,
         REJECTED,
         APPROVED,
         PENDING

@@ -552,6 +552,42 @@ describe(CollectionConfig.contractName, async function () {
     ).to.be.rejectedWith("AddressNotEligible");
   });
 
+  // it("Success request sharing data and retrive the event emit", async function () {
+  //   const nikDebtor = hash32(nik);
+  //   const creditorConsumerCode = hash32(codeBankB);
+  //   const creditorProviderCode = hash32(codeBankA);
+  //   const requestId = "request id";
+  //   const transactionId = "transaction id";
+  //   const referenceId = "reference id";
+  //   const requestDate = "request data";
+
+  //   const tx = await contract
+  //     .connect(bankB)
+  //     .functions[
+  //       "requestDelegation(bytes32,bytes32,bytes32,string,string,string,string)"
+  //     ](
+  //       nikDebtor,
+  //       creditorConsumerCode,
+  //       creditorProviderCode,
+  //       requestId,
+  //       transactionId,
+  //       referenceId,
+  //       requestDate
+  //     );
+
+  //   const receipt = await tx.wait();
+  //   const event = receipt.events?.find(
+  //     (e: { event: string }) => e.event === "DelegationRequestedMetadata"
+  //   );
+  //   expect(event).to.not.be.undefined;
+  //   expect(event.args.nik).to.equal(nikDebtor);
+  //   expect(event.args.requestId).to.equal(requestId);
+  //   expect(event.args.creditorConsumerCode).to.equal(creditorConsumerCode);
+  //   expect(event.args.creditorProviderCode).to.equal(creditorProviderCode);
+  //   expect(event.args.transactionId).to.equal(transactionId);
+  //   expect(event.args.referenceId).to.equal(referenceId);
+  //   expect(event.args.requestDate).to.equal(requestDate);
+  // });
   it("Success request sharing data and retrive the event emit", async function () {
     const nikDebtor = hash32(nik);
     const creditorConsumerCode = hash32(codeBankB);
@@ -561,21 +597,94 @@ describe(CollectionConfig.contractName, async function () {
     const referenceId = "reference id";
     const requestDate = "request data";
 
-    const tx = await contract
-      .connect(bankB)
-      .functions[
+    // ✅ Get correct chainId
+    const network = await ethers.provider.getNetwork();
+
+    // ✅ Define EIP-712 domain
+    const domain = {
+      name: "DataSharing",
+      version: "1",
+      chainId: network.chainId,
+      verifyingContract: contract.address,
+    };
+
+    // ✅ Fetch correct nonce
+    const nonce = await contract.nonces(await bankB.getAddress());
+
+    // ✅ Encode function call correctly
+    const functionCall = contract.interface.encodeFunctionData(
+      contract.interface.getFunction(
         "requestDelegation(bytes32,bytes32,bytes32,string,string,string,string)"
-      ](
+      ),
+      [
         nikDebtor,
         creditorConsumerCode,
         creditorProviderCode,
         requestId,
         transactionId,
         referenceId,
-        requestDate
-      );
+        requestDate,
+      ]
+    );
 
-    const receipt = await tx.wait();
+    // ✅ Prepare message for signing
+    const message = {
+      from: await bankB.getAddress(),
+      nonce: Number(nonce),
+      functionCall: functionCall,
+    };
+
+    // ✅ Sign meta-transaction
+    const signature = await bankB._signTypedData(
+      domain,
+      {
+        MetaTransaction: [
+          { name: "from", type: "address" },
+          { name: "nonce", type: "uint256" },
+          { name: "functionCall", type: "bytes" },
+        ],
+      },
+      message
+    );
+
+    // ✅ Verify signature before sending
+    const recoveredSigner = ethers.utils.verifyTypedData(
+      domain,
+      {
+        MetaTransaction: [
+          { name: "from", type: "address" },
+          { name: "nonce", type: "uint256" },
+          { name: "functionCall", type: "bytes" },
+        ],
+      },
+      message,
+      signature
+    );
+
+    expect(recoveredSigner).to.equal(await bankB.getAddress());
+
+    // ✅ Execute meta-transaction
+    let receipt;
+    try {
+      const tx = await contract
+        .connect(platform)
+        .executeMetaTransaction(
+          message.from,
+          message.nonce,
+          message.functionCall,
+          signature
+        );
+      receipt = await tx.wait();
+    } catch (error: any) {
+      console.error("Transaction failed! Revert Reason:", error);
+      if (error.data) {
+        console.error(
+          "Decoded Revert Reason:",
+          ethers.utils.toUtf8String(error.data)
+        );
+      }
+    }
+
     const event = receipt.events?.find(
       (e: { event: string }) => e.event === "DelegationRequestedMetadata"
     );

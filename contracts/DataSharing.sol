@@ -272,7 +272,7 @@ contract DataSharing is Delegation, MetaTransaction {
         bytes32 nik,
         bytes32 consumer,
         bytes32 provider
-    ) external {
+    ) external onlyPlatform {
         _requestDelegation(_msgSender(), nik, consumer, provider);
     }
 

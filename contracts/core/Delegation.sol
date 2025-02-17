@@ -177,7 +177,6 @@ abstract contract Delegation is Registration {
      * @notice Reverts with `AddressNotEligible` if `_executor` is not the consumer.
      */
     function _requestDelegation(
-        address _executor,
         bytes32 _nik,
         bytes32 _codeConsumer,
         bytes32 _codeProvider
@@ -188,7 +187,6 @@ abstract contract Delegation is Registration {
             address _provider
         ) = _checkCompliance(_nik, _codeConsumer, _codeProvider);
 
-        if (_executor != _consumer) revert AddressNotEligible();
         if (_request[_consumer][_provider].status == Status.PENDING)
             revert RequestAlreadyExist();
 
@@ -217,7 +215,6 @@ abstract contract Delegation is Registration {
      * @notice Reverts with `AddressNotEligible` if `_executor` is not the provider.
      */
     function _delegate(
-        address _executor,
         bytes32 _nik,
         bytes32 _codeConsumer,
         bytes32 _codeProvider,
@@ -229,7 +226,6 @@ abstract contract Delegation is Registration {
             address _provider
         ) = _checkCompliance(_nik, _codeConsumer, _codeProvider);
 
-        if (_executor != _provider) revert AddressNotEligible();
         if (_request[_consumer][_provider].status != Status.PENDING) {
             revert InvalidStatusApproveRequest();
         }

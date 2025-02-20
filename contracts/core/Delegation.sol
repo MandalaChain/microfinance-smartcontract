@@ -48,6 +48,7 @@ abstract contract Delegation is Registration {
      *      - PENDING:  The request is awaiting approval or rejection.
      */
     enum Status {
+        NONE,
         REJECTED,
         APPROVED,
         PENDING
@@ -173,7 +174,7 @@ abstract contract Delegation is Registration {
      * @param _codeConsumer The hashed code representing the consumer creditor.
      * @param _codeProvider The hashed code representing the provider creditor.
      * @notice Reverts with `RequestAlreadyExist` if there is already a pending request.
-     * @notice Reverts with `AddressNotEligible` if `msg.sender` is not the consumer.
+     * @notice Reverts with `AddressNotEligible` if `_executor` is not the consumer.
      */
     function _requestDelegation(
         bytes32 _nik,
@@ -186,7 +187,6 @@ abstract contract Delegation is Registration {
             address _provider
         ) = _checkCompliance(_nik, _codeConsumer, _codeProvider);
 
-        if (msg.sender != _consumer) revert AddressNotEligible();
         if (_request[_consumer][_provider].status == Status.PENDING)
             revert RequestAlreadyExist();
 
@@ -212,7 +212,7 @@ abstract contract Delegation is Registration {
      * @param _codeProvider The hashed code representing the provider creditor.
      * @param _status       The final status of the delegation (APPROVED or REJECTED).
      * @notice Reverts with `InvalidStatusApproveRequest` if the request is not currently PENDING.
-     * @notice Reverts with `AddressNotEligible` if `msg.sender` is not the provider.
+     * @notice Reverts with `AddressNotEligible` if `_executor` is not the provider.
      */
     function _delegate(
         bytes32 _nik,
@@ -226,7 +226,6 @@ abstract contract Delegation is Registration {
             address _provider
         ) = _checkCompliance(_nik, _codeConsumer, _codeProvider);
 
-        if (msg.sender != _provider) revert AddressNotEligible();
         if (_request[_consumer][_provider].status != Status.PENDING) {
             revert InvalidStatusApproveRequest();
         }

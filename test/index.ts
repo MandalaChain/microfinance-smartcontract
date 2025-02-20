@@ -24,7 +24,7 @@ describe(CollectionConfig.contractName, async function () {
   const codeBankB = "5678";
   const codeBankOther = "8765";
 
-  function hash32(identifier: string): String {
+  function hash32(identifier: string): string {
     return ethers.utils.keccak256(
       ethers.utils.defaultAbiCoder.encode(["string"], [identifier])
     );
@@ -33,18 +33,30 @@ describe(CollectionConfig.contractName, async function () {
   before(async function () {
     [owner, platform, bankA, bankB, customer, other] =
       await ethers.getSigners();
-  });
 
-  it("Contract deployment", async function () {
     const Contract = await ethers.getContractFactory(
       CollectionConfig.contractName
     );
     contract = (await Contract.deploy(
-      await platform.getAddress()
+      await platform.getAddress(),
+      "DataSharing",
+      "1"
     )) as unknown as NftContractType;
 
     await contract.deployed();
   });
+
+  // it("Contract deployment", async function () {
+  //   const Contract = await ethers.getContractFactory(
+  //     CollectionConfig.contractName
+  //   );
+  //   contract = (await Contract.deploy(
+  //     await platform.getAddress()
+  //   )) as unknown as NftContractType;
+
+  //   await contract.deployed();
+  //   domain.verifyingContract = contract.address;
+  // });
 
   it("Check owner address", async function () {
     expect(await contract.owner()).to.equal(await owner.getAddress());
@@ -65,15 +77,15 @@ describe(CollectionConfig.contractName, async function () {
     );
 
     await expect(
-       contract.getDebtorDataActiveCreditors(hash32(nik))
+      contract.getDebtorDataActiveCreditors(hash32(nik))
     ).to.be.rejectedWith("NikNeedRegistered");
 
     await expect(
-       contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(0))
+      contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(0))
     ).to.be.rejectedWith("NikNeedRegistered");
 
     await expect(
-       contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(1))
+      contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(1))
     ).to.be.rejectedWith("NikNeedRegistered");
 
     await expect(
@@ -173,7 +185,7 @@ describe(CollectionConfig.contractName, async function () {
     ).to.be.rejectedWith("InvalidAddress");
   });
 
-  it("Success adding creditor A and retrive event emit", async function () {
+  it("Success adding creditor A and retrive event emit using EIP-712 gasless transaction", async function () {
     const creditorAddress = await bankA.getAddress();
     const creditorCode = hash32(codeBankA);
     const institutionCode = "INSTITUTION_CODE";
@@ -182,24 +194,99 @@ describe(CollectionConfig.contractName, async function () {
     const signerName = "Signer Name";
     const signerPosition = "Signer Position";
 
-    const tx = await contract
-      .connect(platform)
-      .functions[
+    // ✅ Get correct chainId
+    const network = await ethers.provider.getNetwork();
+
+    // ✅ Define EIP-712 domain
+    const domain = {
+      name: "DataSharing",
+      version: "1",
+      chainId: network.chainId,
+      verifyingContract: contract.address,
+    };
+
+    // ✅ Fetch correct nonce
+    const nonce = await contract.nonces(await platform.getAddress());
+
+    // ✅ Encode function call correctly
+    const functionCall = contract.interface.encodeFunctionData(
+      contract.interface.getFunction(
         "addCreditor(address,bytes32,string,string,string,string,string)"
-      ](
+      ),
+      [
         creditorAddress,
         creditorCode,
         institutionCode,
         institutionName,
         approvalDate,
         signerName,
-        signerPosition
-      );
+        signerPosition,
+      ]
+    );
 
-    const receipt = await tx.wait();
+    // ✅ Prepare message for signing
+    const message = {
+      from: await platform.getAddress(),
+      nonce: Number(nonce),
+      functionCall: functionCall,
+    };
+
+    // ✅ Sign meta-transaction
+    const signature = await platform._signTypedData(
+      domain,
+      {
+        MetaTransaction: [
+          { name: "from", type: "address" },
+          { name: "nonce", type: "uint256" },
+          { name: "functionCall", type: "bytes" },
+        ],
+      },
+      message
+    );
+
+    // ✅ Verify signature before sending
+    const recoveredSigner = ethers.utils.verifyTypedData(
+      domain,
+      {
+        MetaTransaction: [
+          { name: "from", type: "address" },
+          { name: "nonce", type: "uint256" },
+          { name: "functionCall", type: "bytes" },
+        ],
+      },
+      message,
+      signature
+    );
+
+    expect(recoveredSigner).to.equal(await platform.getAddress());
+
+    // ✅ Execute meta-transaction
+    let receipt;
+    try {
+      const tx = await contract
+        .connect(platform)
+        .executeMetaTransaction(
+          message.from,
+          message.nonce,
+          message.functionCall,
+          signature
+        );
+      receipt = await tx.wait();
+    } catch (error: any) {
+      console.error("Transaction failed! Revert Reason:", error);
+      if (error.data) {
+        console.error(
+          "Decoded Revert Reason:",
+          ethers.utils.toUtf8String(error.data)
+        );
+      }
+    }
+
+    // ✅ Check for event emission
     const event = receipt.events?.find(
       (e: { event: string }) => e.event === "CreditorAddedWithMetadata"
     );
+
     expect(event).to.not.be.undefined;
     expect(event.args.creditorCode).to.equal(creditorCode);
     expect(event.args.institutionCode).to.equal(institutionCode);
@@ -465,6 +552,42 @@ describe(CollectionConfig.contractName, async function () {
     ).to.be.rejectedWith("AddressNotEligible");
   });
 
+  // it("Success request sharing data and retrive the event emit", async function () {
+  //   const nikDebtor = hash32(nik);
+  //   const creditorConsumerCode = hash32(codeBankB);
+  //   const creditorProviderCode = hash32(codeBankA);
+  //   const requestId = "request id";
+  //   const transactionId = "transaction id";
+  //   const referenceId = "reference id";
+  //   const requestDate = "request data";
+
+  //   const tx = await contract
+  //     .connect(bankB)
+  //     .functions[
+  //       "requestDelegation(bytes32,bytes32,bytes32,string,string,string,string)"
+  //     ](
+  //       nikDebtor,
+  //       creditorConsumerCode,
+  //       creditorProviderCode,
+  //       requestId,
+  //       transactionId,
+  //       referenceId,
+  //       requestDate
+  //     );
+
+  //   const receipt = await tx.wait();
+  //   const event = receipt.events?.find(
+  //     (e: { event: string }) => e.event === "DelegationRequestedMetadata"
+  //   );
+  //   expect(event).to.not.be.undefined;
+  //   expect(event.args.nik).to.equal(nikDebtor);
+  //   expect(event.args.requestId).to.equal(requestId);
+  //   expect(event.args.creditorConsumerCode).to.equal(creditorConsumerCode);
+  //   expect(event.args.creditorProviderCode).to.equal(creditorProviderCode);
+  //   expect(event.args.transactionId).to.equal(transactionId);
+  //   expect(event.args.referenceId).to.equal(referenceId);
+  //   expect(event.args.requestDate).to.equal(requestDate);
+  // });
   it("Success request sharing data and retrive the event emit", async function () {
     const nikDebtor = hash32(nik);
     const creditorConsumerCode = hash32(codeBankB);
@@ -474,21 +597,94 @@ describe(CollectionConfig.contractName, async function () {
     const referenceId = "reference id";
     const requestDate = "request data";
 
-    const tx = await contract
-      .connect(bankB)
-      .functions[
+    // ✅ Get correct chainId
+    const network = await ethers.provider.getNetwork();
+
+    // ✅ Define EIP-712 domain
+    const domain = {
+      name: "DataSharing",
+      version: "1",
+      chainId: network.chainId,
+      verifyingContract: contract.address,
+    };
+
+    // ✅ Fetch correct nonce
+    const nonce = await contract.nonces(await bankB.getAddress());
+
+    // ✅ Encode function call correctly
+    const functionCall = contract.interface.encodeFunctionData(
+      contract.interface.getFunction(
         "requestDelegation(bytes32,bytes32,bytes32,string,string,string,string)"
-      ](
+      ),
+      [
         nikDebtor,
         creditorConsumerCode,
         creditorProviderCode,
         requestId,
         transactionId,
         referenceId,
-        requestDate
-      );
+        requestDate,
+      ]
+    );
 
-    const receipt = await tx.wait();
+    // ✅ Prepare message for signing
+    const message = {
+      from: await bankB.getAddress(),
+      nonce: Number(nonce),
+      functionCall: functionCall,
+    };
+
+    // ✅ Sign meta-transaction
+    const signature = await bankB._signTypedData(
+      domain,
+      {
+        MetaTransaction: [
+          { name: "from", type: "address" },
+          { name: "nonce", type: "uint256" },
+          { name: "functionCall", type: "bytes" },
+        ],
+      },
+      message
+    );
+
+    // ✅ Verify signature before sending
+    const recoveredSigner = ethers.utils.verifyTypedData(
+      domain,
+      {
+        MetaTransaction: [
+          { name: "from", type: "address" },
+          { name: "nonce", type: "uint256" },
+          { name: "functionCall", type: "bytes" },
+        ],
+      },
+      message,
+      signature
+    );
+
+    expect(recoveredSigner).to.equal(await bankB.getAddress());
+
+    // ✅ Execute meta-transaction
+    let receipt;
+    try {
+      const tx = await contract
+        .connect(platform)
+        .executeMetaTransaction(
+          message.from,
+          message.nonce,
+          message.functionCall,
+          signature
+        );
+      receipt = await tx.wait();
+    } catch (error: any) {
+      console.error("Transaction failed! Revert Reason:", error);
+      if (error.data) {
+        console.error(
+          "Decoded Revert Reason:",
+          ethers.utils.toUtf8String(error.data)
+        );
+      }
+    }
+
     const event = receipt.events?.find(
       (e: { event: string }) => e.event === "DelegationRequestedMetadata"
     );

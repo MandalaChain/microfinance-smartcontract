@@ -1,8 +1,9 @@
-// import { utils } from "ethers";
 import CollectionConfig from "./CollectionConfig";
 
 const ContractArguments = [
-    CollectionConfig.platformAddress
+    CollectionConfig.platformAddress,
+    CollectionConfig.domainEip712,
+    CollectionConfig.versionDomain
 ] as const;
 
 export default ContractArguments;

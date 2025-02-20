@@ -2,4 +2,5 @@
 /* tslint:disable */
 /* eslint-disable */
 export { Delegation__factory } from "./Delegation__factory";
+export { MetaTransaction__factory } from "./MetaTransaction__factory";
 export { Registration__factory } from "./Registration__factory";

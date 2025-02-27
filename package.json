@@ -18,12 +18,10 @@
     "deploy-localhost": "hardhat run scripts/2_deploy_localhost.ts --network localhost",
     "deploy-token": "hardhat run scripts/5_deploy_test_token_native.ts",
     "verify": "hardhat verify --constructor-args config/ContractArguments.ts",
-    "setup-client": "hardhat run scripts/3_setup_client.ts",
-    "setup-doctype": "hardhat run scripts/4_setup_docType.ts"
+    "set-platform": "hardhat run scripts/3_setPlatform.ts"
   },
   "dependencies": {
     "@nomicfoundation/hardhat-ethers": "^3.0.6",
-    "@nomiclabs/hardhat-etherscan": "^3.1.8",
     "@openzeppelin/contracts": "^5.0.2",
     "@typechain/ethers-v6": "^0.5.1",
     "@typechain/hardhat": "^9.1.0",
@@ -42,6 +40,7 @@
     "typescript": "^5.4.5"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-verify": "^2.0.13",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@types/chai-as-promised": "^7.1.8",
     "chai-as-promised": "^7.1.2",

@@ -1,7 +1,8 @@
 import fs from 'fs';
 import * as dotenv from "dotenv";
 import { HardhatUserConfig, task } from "hardhat/config";
-import "@nomiclabs/hardhat-etherscan";
+import "@nomicfoundation/hardhat-verify";
+// import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-ethers";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
@@ -127,7 +128,7 @@ const config: HardhatUserConfig = {
       arbitrumGoerli: process.env.BLOCK_EXPLORER_API_KEY!,
       arbitrumOne: process.env.BLOCK_EXPLORER_API_KEY!,
       // Niskala
-      niskala: process.env.BLOCK_EXPLORER_API_KEY!,
+      niskala: process.env.BLOCK_EXPLORER_API_KEY! || "NO_API_KEY_NEEDED",
       devnet: process.env.BLOCK_EXPLORER_API_KEY!,
     },
     customChains: [

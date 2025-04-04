@@ -30,22 +30,21 @@ export interface DataSharingInterface extends Interface {
       | "addCreditor(bytes32,address)"
       | "addDebtor"
       | "addDebtorToCreditor"
-      | "delegate"
+      | "delegate(bytes32,bytes32,bytes32)"
+      | "delegate(bytes32,bytes32,bytes32,string,string,string,string)"
       | "eip712Domain"
       | "executeMetaTransaction"
-      | "getActiveCreditorsByStatus"
+      | "getActiveCreditors"
       | "getCreditor"
       | "getDebtor"
       | "getDebtorDataActiveCreditors"
-      | "getStatusRequest"
       | "nonces"
       | "owner"
+      | "processAction"
       | "purchasePackage"
       | "removeCreditor"
       | "removeDebtor"
       | "renounceOwnership"
-      | "requestDelegation(bytes32,bytes32,bytes32)"
-      | "requestDelegation(bytes32,bytes32,bytes32,string,string,string,string)"
       | "setPlatform"
       | "transferOwnership"
   ): FunctionFragment;
@@ -54,12 +53,12 @@ export interface DataSharingInterface extends Interface {
     nameOrSignatureOrTopic:
       | "CreditorAddedWithMetadata"
       | "DebtorAddedWithMetadata"
-      | "Delegate"
-      | "DelegationRequestedMetadata"
+      | "DelegationMetadata"
       | "EIP712DomainChanged"
       | "MetaTransactionExecuted"
       | "OwnershipTransferred"
       | "PackagePurchased"
+      | "ProcessAction"
       | "SetNewAddressPlatform"
   ): EventFragment;
 
@@ -89,8 +88,12 @@ export interface DataSharingInterface extends Interface {
     ]
   ): string;
   encodeFunctionData(
-    functionFragment: "delegate",
-    values: [BytesLike, BytesLike, BytesLike, BigNumberish]
+    functionFragment: "delegate(bytes32,bytes32,bytes32)",
+    values: [BytesLike, BytesLike, BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "delegate(bytes32,bytes32,bytes32,string,string,string,string)",
+    values: [BytesLike, BytesLike, BytesLike, string, string, string, string]
   ): string;
   encodeFunctionData(
     functionFragment: "eip712Domain",
@@ -101,8 +104,8 @@ export interface DataSharingInterface extends Interface {
     values: [AddressLike, BigNumberish, BytesLike, BytesLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "getActiveCreditorsByStatus",
-    values: [BytesLike, BigNumberish]
+    functionFragment: "getActiveCreditors",
+    values: [BytesLike]
   ): string;
   encodeFunctionData(
     functionFragment: "getCreditor",
@@ -116,12 +119,12 @@ export interface DataSharingInterface extends Interface {
     functionFragment: "getDebtorDataActiveCreditors",
     values: [BytesLike]
   ): string;
-  encodeFunctionData(
-    functionFragment: "getStatusRequest",
-    values: [BytesLike, BytesLike]
-  ): string;
   encodeFunctionData(functionFragment: "nonces", values: [AddressLike]): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "processAction",
+    values: [BytesLike, BytesLike, BytesLike, string]
+  ): string;
   encodeFunctionData(
     functionFragment: "purchasePackage",
     values: [
@@ -148,14 +151,6 @@ export interface DataSharingInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "requestDelegation(bytes32,bytes32,bytes32)",
-    values: [BytesLike, BytesLike, BytesLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "requestDelegation(bytes32,bytes32,bytes32,string,string,string,string)",
-    values: [BytesLike, BytesLike, BytesLike, string, string, string, string]
-  ): string;
-  encodeFunctionData(
     functionFragment: "setPlatform",
     values: [AddressLike]
   ): string;
@@ -177,7 +172,14 @@ export interface DataSharingInterface extends Interface {
     functionFragment: "addDebtorToCreditor",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "delegate", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "delegate(bytes32,bytes32,bytes32)",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "delegate(bytes32,bytes32,bytes32,string,string,string,string)",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "eip712Domain",
     data: BytesLike
@@ -187,7 +189,7 @@ export interface DataSharingInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getActiveCreditorsByStatus",
+    functionFragment: "getActiveCreditors",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -199,12 +201,12 @@ export interface DataSharingInterface extends Interface {
     functionFragment: "getDebtorDataActiveCreditors",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "getStatusRequest",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "nonces", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "processAction",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "purchasePackage",
     data: BytesLike
@@ -219,14 +221,6 @@ export interface DataSharingInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "renounceOwnership",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "requestDelegation(bytes32,bytes32,bytes32)",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "requestDelegation(bytes32,bytes32,bytes32,string,string,string,string)",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -307,32 +301,7 @@ export namespace DebtorAddedWithMetadataEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace DelegateEvent {
-  export type InputTuple = [
-    nik: BytesLike,
-    creditorConsumerCode: BytesLike,
-    creditorProviderCode: BytesLike,
-    status: BigNumberish
-  ];
-  export type OutputTuple = [
-    nik: string,
-    creditorConsumerCode: string,
-    creditorProviderCode: string,
-    status: bigint
-  ];
-  export interface OutputObject {
-    nik: string;
-    creditorConsumerCode: string;
-    creditorProviderCode: string;
-    status: bigint;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace DelegationRequestedMetadataEvent {
+export namespace DelegationMetadataEvent {
   export type InputTuple = [
     nik: BytesLike,
     requestId: string,
@@ -439,6 +408,31 @@ export namespace PackagePurchasedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace ProcessActionEvent {
+  export type InputTuple = [
+    nik: BytesLike,
+    consumer: BytesLike,
+    provider: BytesLike,
+    metadata: string
+  ];
+  export type OutputTuple = [
+    nik: string,
+    consumer: string,
+    provider: string,
+    metadata: string
+  ];
+  export interface OutputObject {
+    nik: string;
+    consumer: string;
+    provider: string;
+    metadata: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace SetNewAddressPlatformEvent {
   export type InputTuple = [platform: AddressLike];
   export type OutputTuple = [platform: string];
@@ -535,12 +529,21 @@ export interface DataSharing extends BaseContract {
     "nonpayable"
   >;
 
-  delegate: TypedContractMethod<
+  "delegate(bytes32,bytes32,bytes32)": TypedContractMethod<
+    [nik: BytesLike, consumer: BytesLike, provider: BytesLike],
+    [void],
+    "nonpayable"
+  >;
+
+  "delegate(bytes32,bytes32,bytes32,string,string,string,string)": TypedContractMethod<
     [
       nik: BytesLike,
       consumer: BytesLike,
       provider: BytesLike,
-      status: BigNumberish
+      requestId: string,
+      transactionId: string,
+      referenceId: string,
+      requestDate: string
     ],
     [void],
     "nonpayable"
@@ -573,11 +576,7 @@ export interface DataSharing extends BaseContract {
     "nonpayable"
   >;
 
-  getActiveCreditorsByStatus: TypedContractMethod<
-    [nik: BytesLike, status: BigNumberish],
-    [string[]],
-    "view"
-  >;
+  getActiveCreditors: TypedContractMethod<[nik: BytesLike], [string[]], "view">;
 
   getCreditor: TypedContractMethod<[codeCreditor: BytesLike], [string], "view">;
 
@@ -589,15 +588,15 @@ export interface DataSharing extends BaseContract {
     "view"
   >;
 
-  getStatusRequest: TypedContractMethod<
-    [nik: BytesLike, creditor: BytesLike],
-    [bigint],
-    "view"
-  >;
-
   nonces: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
 
   owner: TypedContractMethod<[], [string], "view">;
+
+  processAction: TypedContractMethod<
+    [nik: BytesLike, consumer: BytesLike, provider: BytesLike, metadta: string],
+    [void],
+    "nonpayable"
+  >;
 
   purchasePackage: TypedContractMethod<
     [
@@ -623,26 +622,6 @@ export interface DataSharing extends BaseContract {
   removeDebtor: TypedContractMethod<[nik: BytesLike], [void], "nonpayable">;
 
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
-
-  "requestDelegation(bytes32,bytes32,bytes32)": TypedContractMethod<
-    [nik: BytesLike, consumer: BytesLike, provider: BytesLike],
-    [void],
-    "nonpayable"
-  >;
-
-  "requestDelegation(bytes32,bytes32,bytes32,string,string,string,string)": TypedContractMethod<
-    [
-      nik: BytesLike,
-      consumer: BytesLike,
-      provider: BytesLike,
-      requestId: string,
-      transactionId: string,
-      referenceId: string,
-      requestDate: string
-    ],
-    [void],
-    "nonpayable"
-  >;
 
   setPlatform: TypedContractMethod<
     [setNewPlatform: AddressLike],
@@ -706,13 +685,23 @@ export interface DataSharing extends BaseContract {
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "delegate"
+    nameOrSignature: "delegate(bytes32,bytes32,bytes32)"
+  ): TypedContractMethod<
+    [nik: BytesLike, consumer: BytesLike, provider: BytesLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "delegate(bytes32,bytes32,bytes32,string,string,string,string)"
   ): TypedContractMethod<
     [
       nik: BytesLike,
       consumer: BytesLike,
       provider: BytesLike,
-      status: BigNumberish
+      requestId: string,
+      transactionId: string,
+      referenceId: string,
+      requestDate: string
     ],
     [void],
     "nonpayable"
@@ -747,12 +736,8 @@ export interface DataSharing extends BaseContract {
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "getActiveCreditorsByStatus"
-  ): TypedContractMethod<
-    [nik: BytesLike, status: BigNumberish],
-    [string[]],
-    "view"
-  >;
+    nameOrSignature: "getActiveCreditors"
+  ): TypedContractMethod<[nik: BytesLike], [string[]], "view">;
   getFunction(
     nameOrSignature: "getCreditor"
   ): TypedContractMethod<[codeCreditor: BytesLike], [string], "view">;
@@ -763,18 +748,18 @@ export interface DataSharing extends BaseContract {
     nameOrSignature: "getDebtorDataActiveCreditors"
   ): TypedContractMethod<[nik: BytesLike], [[string[], bigint[]]], "view">;
   getFunction(
-    nameOrSignature: "getStatusRequest"
-  ): TypedContractMethod<
-    [nik: BytesLike, creditor: BytesLike],
-    [bigint],
-    "view"
-  >;
-  getFunction(
     nameOrSignature: "nonces"
   ): TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
   getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "processAction"
+  ): TypedContractMethod<
+    [nik: BytesLike, consumer: BytesLike, provider: BytesLike, metadta: string],
+    [void],
+    "nonpayable"
+  >;
   getFunction(
     nameOrSignature: "purchasePackage"
   ): TypedContractMethod<
@@ -801,28 +786,6 @@ export interface DataSharing extends BaseContract {
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "requestDelegation(bytes32,bytes32,bytes32)"
-  ): TypedContractMethod<
-    [nik: BytesLike, consumer: BytesLike, provider: BytesLike],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "requestDelegation(bytes32,bytes32,bytes32,string,string,string,string)"
-  ): TypedContractMethod<
-    [
-      nik: BytesLike,
-      consumer: BytesLike,
-      provider: BytesLike,
-      requestId: string,
-      transactionId: string,
-      referenceId: string,
-      requestDate: string
-    ],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
     nameOrSignature: "setPlatform"
   ): TypedContractMethod<[setNewPlatform: AddressLike], [void], "nonpayable">;
   getFunction(
@@ -844,18 +807,11 @@ export interface DataSharing extends BaseContract {
     DebtorAddedWithMetadataEvent.OutputObject
   >;
   getEvent(
-    key: "Delegate"
+    key: "DelegationMetadata"
   ): TypedContractEvent<
-    DelegateEvent.InputTuple,
-    DelegateEvent.OutputTuple,
-    DelegateEvent.OutputObject
-  >;
-  getEvent(
-    key: "DelegationRequestedMetadata"
-  ): TypedContractEvent<
-    DelegationRequestedMetadataEvent.InputTuple,
-    DelegationRequestedMetadataEvent.OutputTuple,
-    DelegationRequestedMetadataEvent.OutputObject
+    DelegationMetadataEvent.InputTuple,
+    DelegationMetadataEvent.OutputTuple,
+    DelegationMetadataEvent.OutputObject
   >;
   getEvent(
     key: "EIP712DomainChanged"
@@ -884,6 +840,13 @@ export interface DataSharing extends BaseContract {
     PackagePurchasedEvent.InputTuple,
     PackagePurchasedEvent.OutputTuple,
     PackagePurchasedEvent.OutputObject
+  >;
+  getEvent(
+    key: "ProcessAction"
+  ): TypedContractEvent<
+    ProcessActionEvent.InputTuple,
+    ProcessActionEvent.OutputTuple,
+    ProcessActionEvent.OutputObject
   >;
   getEvent(
     key: "SetNewAddressPlatform"
@@ -916,26 +879,15 @@ export interface DataSharing extends BaseContract {
       DebtorAddedWithMetadataEvent.OutputObject
     >;
 
-    "Delegate(bytes32,bytes32,bytes32,uint8)": TypedContractEvent<
-      DelegateEvent.InputTuple,
-      DelegateEvent.OutputTuple,
-      DelegateEvent.OutputObject
+    "DelegationMetadata(bytes32,string,bytes32,bytes32,string,string,string)": TypedContractEvent<
+      DelegationMetadataEvent.InputTuple,
+      DelegationMetadataEvent.OutputTuple,
+      DelegationMetadataEvent.OutputObject
     >;
-    Delegate: TypedContractEvent<
-      DelegateEvent.InputTuple,
-      DelegateEvent.OutputTuple,
-      DelegateEvent.OutputObject
-    >;
-
-    "DelegationRequestedMetadata(bytes32,string,bytes32,bytes32,string,string,string)": TypedContractEvent<
-      DelegationRequestedMetadataEvent.InputTuple,
-      DelegationRequestedMetadataEvent.OutputTuple,
-      DelegationRequestedMetadataEvent.OutputObject
-    >;
-    DelegationRequestedMetadata: TypedContractEvent<
-      DelegationRequestedMetadataEvent.InputTuple,
-      DelegationRequestedMetadataEvent.OutputTuple,
-      DelegationRequestedMetadataEvent.OutputObject
+    DelegationMetadata: TypedContractEvent<
+      DelegationMetadataEvent.InputTuple,
+      DelegationMetadataEvent.OutputTuple,
+      DelegationMetadataEvent.OutputObject
     >;
 
     "EIP712DomainChanged()": TypedContractEvent<
@@ -980,6 +932,17 @@ export interface DataSharing extends BaseContract {
       PackagePurchasedEvent.InputTuple,
       PackagePurchasedEvent.OutputTuple,
       PackagePurchasedEvent.OutputObject
+    >;
+
+    "ProcessAction(bytes32,bytes32,bytes32,string)": TypedContractEvent<
+      ProcessActionEvent.InputTuple,
+      ProcessActionEvent.OutputTuple,
+      ProcessActionEvent.OutputObject
+    >;
+    ProcessAction: TypedContractEvent<
+      ProcessActionEvent.InputTuple,
+      ProcessActionEvent.OutputTuple,
+      ProcessActionEvent.OutputObject
     >;
 
     "SetNewAddressPlatform(address)": TypedContractEvent<

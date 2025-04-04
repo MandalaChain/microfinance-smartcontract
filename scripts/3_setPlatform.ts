@@ -5,7 +5,7 @@ async function main() {
     const contract = await NftContractProvider.getContract();
 
     console.log("Set new platform");
-    await contract.setPlatform("0x7f4034bd07CDF9d4ad3CAC4B1C6Cb0e2A39b4713");
+    await contract.setPlatform("0xA6cbA3CF2d28EfEe1A9F7863a13E70C7e0aaEB29");
     console.log("Done");
 }
 

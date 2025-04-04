@@ -6,7 +6,7 @@ const CollectionConfig: CollectionConfigInterface = {
     testnet: Networks.niskala,
     mainnet: Networks.arbitrumOne,
     contractName: "DataSharing",
-    platformAddress: "0x4c406d5fF749D73d0034be044b1C8DD57cF1134c", // account test
+    platformAddress: "0xA6cbA3CF2d28EfEe1A9F7863a13E70C7e0aaEB29", // account test
     domainEip712: "DataSharing",
     versionDomain: "1",
     contractAddress: "0x922872cA2B2FC36cE54EF998Ce1532D774A6511E",

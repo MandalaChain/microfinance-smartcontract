@@ -3,5 +3,8 @@
 /* eslint-disable */
 export * as cryptography from "./cryptography";
 export * as math from "./math";
+export { Address__factory } from "./Address__factory";
+export { Errors__factory } from "./Errors__factory";
+export { Multicall__factory } from "./Multicall__factory";
 export { ShortStrings__factory } from "./ShortStrings__factory";
 export { Strings__factory } from "./Strings__factory";

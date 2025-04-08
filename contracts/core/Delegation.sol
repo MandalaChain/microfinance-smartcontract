@@ -230,16 +230,16 @@ abstract contract Delegation is Registration {
         address _consumer = _isCreditor(_codeConsumer);
         address _provider = _isCreditor(_codeProvider);
 
-        if (_info.creditorStatus[_provider] == Status.APPROVED)
-            revert AlreadyExist();
+        // if (_info.creditorStatus[_provider] == Status.APPROVED)
+        //     revert AlreadyExist();
 
         // Approve the creditor for this debtor and record it
         _info.creditorStatus[_provider] = Status.APPROVED;
         _info.creditors.push(_provider);
 
-        if (_request[_consumer][_provider].status != Status.NONE) {
-            revert DelegateAlreadyExist();
-        }
+        // if (_request[_consumer][_provider].status != Status.NONE) {
+        //     revert DelegateAlreadyExist();
+        // }
 
         // Update the request status
         _request[_consumer][_provider].status = Status.APPROVED;

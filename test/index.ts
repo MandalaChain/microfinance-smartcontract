@@ -1,24 +1,30 @@
 import chai, { expect } from "chai";
 import ChaiAsPromised from "chai-as-promised";
 import { ethers } from "hardhat";
-import keccak256 from "keccak256";
-import { utils, BigNumber } from "ethers";
+import {
+  keccak256,
+  toUtf8Bytes,
+  ZeroAddress,
+  toBeHex,
+  verifyTypedData,
+  TypedDataDomain,
+} from "ethers";
 import CollectionConfig from "../config/CollectionConfig";
 import { NftContractType } from "../lib/NftContractProvider";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+// import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 chai.use(ChaiAsPromised);
 
 describe(CollectionConfig.contractName, async function () {
   let contract!: NftContractType;
-  let owner!: SignerWithAddress;
-  let platform!: SignerWithAddress;
-  let bankA!: SignerWithAddress;
-  let bankB!: SignerWithAddress;
-  let customer!: SignerWithAddress;
-  let other!: SignerWithAddress;
-  let bankC!: SignerWithAddress;
-  let bankD!: SignerWithAddress;
+  let owner!: any;
+  let platform!: any;
+  let bankA!: any;
+  let bankB!: any;
+  let customer!: any;
+  let other!: any;
+  let bankC!: any;
+  let bankD!: any;
 
   const nik = "123456789";
   const nikOther = "987654321";
@@ -29,9 +35,7 @@ describe(CollectionConfig.contractName, async function () {
   const codeBankOther = "8765";
 
   function hash32(identifier: string): string {
-    return ethers.utils.keccak256(
-      ethers.utils.defaultAbiCoder.encode(["string"], [identifier])
-    );
+    return keccak256(toUtf8Bytes(identifier));
   }
 
   before(async function () {
@@ -47,7 +51,7 @@ describe(CollectionConfig.contractName, async function () {
       "1"
     )) as unknown as NftContractType;
 
-    await contract.deployed();
+    await contract.waitForDeployment();
   });
 
   // it("Contract deployment", async function () {
@@ -72,12 +76,10 @@ describe(CollectionConfig.contractName, async function () {
   });
 
   it("Initial Data", async function () {
-    expect(await contract.getDebtor(hash32(nik))).to.be.equal(
-      ethers.constants.AddressZero
-    );
+    expect(await contract.getDebtor(hash32(nik))).to.be.equal(ZeroAddress);
 
     expect(await contract.getCreditor(hash32(codeBankA))).to.be.equal(
-      ethers.constants.AddressZero
+      ZeroAddress
     );
 
     await expect(
@@ -99,18 +101,13 @@ describe(CollectionConfig.contractName, async function () {
     await expect(
       contract
         .connect(other)
-        .functions["addDebtor(bytes32,address)"](
-          hash32(codeBankA),
-          await bankA.getAddress()
-        )
+        .addDebtor(hash32(codeBankA), await bankA.getAddress())
     ).to.be.rejectedWith("AddressNotEligible");
 
     await expect(
       contract
         .connect(other)
-        .functions[
-          "addCreditor(address,bytes32,string,string,string,string,string)"
-        ](
+        ["addCreditor(address,bytes32,string,string,string,string,string)"](
           await bankA.getAddress(),
           hash32(codeBankA),
           "institutionCode",
@@ -149,11 +146,9 @@ describe(CollectionConfig.contractName, async function () {
     await expect(
       contract
         .connect(platform)
-        .functions[
-          "addCreditor(address,bytes32,string,string,string,string,string)"
-        ](
+        ["addCreditor(address,bytes32,string,string,string,string,string)"](
           await bankA.getAddress(),
-          ethers.utils.hexZeroPad("0x0", 32),
+          toBeHex("0x0", 32),
           "institutionCode",
           "institutionName",
           "approvalDate",
@@ -167,10 +162,8 @@ describe(CollectionConfig.contractName, async function () {
     await expect(
       contract
         .connect(platform)
-        .functions[
-          "addCreditor(address,bytes32,string,string,string,string,string)"
-        ](
-          ethers.constants.AddressZero,
+        ["addCreditor(address,bytes32,string,string,string,string,string)"](
+          ZeroAddress,
           hash32(codeBankA),
           "institutionCode",
           "institutionName",
@@ -181,7 +174,7 @@ describe(CollectionConfig.contractName, async function () {
     ).to.be.rejectedWith("InvalidAddress");
   });
 
-  it("Success adding creditor A and retrive event emit using EIP-712 gasless transaction", async function () {
+  it("Success adding creditor A and retrieve event emit using EIP-712 gasless transaction", async function () {
     const creditorAddress = await bankA.getAddress();
     const creditorCode = hash32(codeBankA);
     const institutionCode = "INSTITUTION_CODE";
@@ -194,11 +187,12 @@ describe(CollectionConfig.contractName, async function () {
     const network = await ethers.provider.getNetwork();
 
     // ✅ Define EIP-712 domain
+    const verifyingContractAddress = await contract.getAddress();
     const domain = {
       name: "DataSharing",
       version: "1",
       chainId: network.chainId,
-      verifyingContract: contract.address,
+      verifyingContract: verifyingContractAddress,
     };
 
     // ✅ Fetch correct nonce
@@ -206,9 +200,7 @@ describe(CollectionConfig.contractName, async function () {
 
     // ✅ Encode function call correctly
     const functionCall = contract.interface.encodeFunctionData(
-      contract.interface.getFunction(
-        "addCreditor(address,bytes32,string,string,string,string,string)"
-      ),
+      "addCreditor(address,bytes32,string,string,string,string,string)",
       [
         creditorAddress,
         creditorCode,
@@ -241,8 +233,8 @@ describe(CollectionConfig.contractName, async function () {
     );
 
     // ✅ Verify signature before sending
-    const recoveredSigner = ethers.utils.verifyTypedData(
-      domain,
+    const recoveredSigner = verifyTypedData(
+      domain as TypedDataDomain,
       {
         MetaTransaction: [
           { name: "from", type: "address" },
@@ -266,9 +258,12 @@ describe(CollectionConfig.contractName, async function () {
         signature
       );
     const receipt = await tx.wait();
+    if (!receipt) {
+      throw new Error("Transaction reverted");
+    }
 
     // ✅ Check for event emission
-    const event = receipt.events?.find(
+    const event = (receipt as any).events?.find(
       (e: { event: string }) => e.event === "CreditorAddedWithMetadata"
     );
 
@@ -281,7 +276,7 @@ describe(CollectionConfig.contractName, async function () {
     expect(event.args.signerPosition).to.equal(signerPosition);
   });
 
-  it("Success retrive public key credtiro A from code creditor A", async function () {
+  it("Success retrieve public key creditor A from code creditor A", async function () {
     expect(await contract.getCreditor(hash32(codeBankA))).to.be.equal(
       await bankA.getAddress()
     );
@@ -291,9 +286,7 @@ describe(CollectionConfig.contractName, async function () {
     await expect(
       contract
         .connect(platform)
-        .functions[
-          "addCreditor(address,bytes32,string,string,string,string,string)"
-        ](
+        ["addCreditor(address,bytes32,string,string,string,string,string)"](
           await bankA.getAddress(),
           hash32(codeBankA),
           "institutionCode",
@@ -309,18 +302,13 @@ describe(CollectionConfig.contractName, async function () {
     await expect(
       contract
         .connect(platform)
-        .addDebtor(
-          ethers.utils.hexZeroPad("0x0", 32),
-          await customer.getAddress()
-        )
+        .addDebtor(toBeHex("0x0", 32), await customer.getAddress())
     ).to.be.rejectedWith("InvalidHash");
   });
 
   it("Error create wallet for debtor because wallet to set it up is zero address", async function () {
     await expect(
-      contract
-        .connect(platform)
-        .addDebtor(hash32(nik), ethers.constants.AddressZero)
+      contract.connect(platform).addDebtor(hash32(nik), ZeroAddress)
     ).to.be.rejectedWith("InvalidAddress");
   });
 
@@ -330,7 +318,7 @@ describe(CollectionConfig.contractName, async function () {
       .addDebtor(hash32(nik), await customer.getAddress());
   });
 
-  it("Success retrive wallet public key from NIK debtor", async function () {
+  it("Success retrieve wallet public key from NIK debtor", async function () {
     expect(await contract.getDebtor(hash32(nik))).to.be.equal(
       await customer.getAddress()
     );
@@ -344,13 +332,13 @@ describe(CollectionConfig.contractName, async function () {
     ).to.be.rejectedWith("AlreadyExist");
   });
 
-  it("Error zero hash NIK and code creditor by adding Debitor to active customer for creditor A", async function () {
+  it("Error zero hash NIK and code creditor by adding Debtor to active customer for creditor A", async function () {
     await expect(
       contract
         .connect(platform)
         .addDebtorToCreditor(
-          ethers.utils.hexZeroPad("0x0", 32),
-          ethers.utils.hexZeroPad("0x0", 32),
+          toBeHex("0x0", 32),
+          toBeHex("0x0", 32),
           "",
           "",
           "",
@@ -361,7 +349,7 @@ describe(CollectionConfig.contractName, async function () {
     ).to.be.rejectedWith("InvalidHash");
   });
 
-  it("Error zero address other creditor from code creditor by adding Debitor to active customer for other creditor cause not registered", async function () {
+  it("Error zero address other creditor from code creditor by adding Debtor to active customer for other creditor cause not registered", async function () {
     await expect(
       contract
         .connect(platform)
@@ -378,7 +366,7 @@ describe(CollectionConfig.contractName, async function () {
     ).to.be.rejectedWith("NotEligible");
   });
 
-  it("Success adding Debitor to active customer for creditor A and retrive event emit", async function () {
+  it("Success adding Debtor to active customer for creditor A and retrieve event emit", async function () {
     const nikDebtor = hash32(nik);
     const name = "Name Debtor";
     const creditorCode = hash32(codeBankA);
@@ -402,7 +390,10 @@ describe(CollectionConfig.contractName, async function () {
       );
 
     const receipt = await tx.wait();
-    const event = receipt.events?.find(
+    if (!receipt) {
+      throw new Error("Receipt not found");
+    }
+    const event = (receipt as any).events?.find(
       (e: { event: string }) => e.event === "DebtorAddedWithMetadata"
     );
 
@@ -417,7 +408,7 @@ describe(CollectionConfig.contractName, async function () {
     expect(event.args.urlApproval).to.equal(urlApproval);
   });
 
-  it("Error adding Debitor to active customer for creditor A cause already registered", async function () {
+  it("Error adding Debtor to active customer for creditor A cause already registered", async function () {
     await expect(
       contract
         .connect(platform)
@@ -434,7 +425,7 @@ describe(CollectionConfig.contractName, async function () {
     ).to.be.rejectedWith("AlreadyExist");
   });
 
-  it("Retrive ceredtior A as active creditor from storage contract", async function () {
+  it("Retrieve creditor A as active creditor from storage contract", async function () {
     const [creditors, statuses] = await contract.getDebtorDataActiveCreditors(
       hash32(nik)
     );
@@ -443,7 +434,7 @@ describe(CollectionConfig.contractName, async function () {
     expect(statuses).to.deep.equal([1]);
   });
 
-  it("Success adding creditor B and retrive event emit", async function () {
+  it("Success adding creditor B and retrieve event emit", async function () {
     const creditorAddress = await bankB.getAddress();
     const creditorCode = hash32(codeBankB);
     const institutionCode = "INSTITUTION_CODE";
@@ -454,9 +445,7 @@ describe(CollectionConfig.contractName, async function () {
 
     const tx = await contract
       .connect(platform)
-      .functions[
-        "addCreditor(address,bytes32,string,string,string,string,string)"
-      ](
+      ["addCreditor(address,bytes32,string,string,string,string,string)"](
         creditorAddress,
         creditorCode,
         institutionCode,
@@ -467,7 +456,10 @@ describe(CollectionConfig.contractName, async function () {
       );
 
     const receipt = await tx.wait();
-    const event = receipt.events?.find(
+    if (!receipt) {
+      throw new Error("Receipt not found");
+    }
+    const event = (receipt as any).events?.find(
       (e: { event: string }) => e.event === "CreditorAddedWithMetadata"
     );
     expect(event).to.not.be.undefined;
@@ -484,9 +476,7 @@ describe(CollectionConfig.contractName, async function () {
     const creditorCodeD = hash32(codeBankD);
     await contract
       .connect(platform)
-      .functions[
-        "addCreditor(address,bytes32,string,string,string,string,string)"
-      ](
+      ["addCreditor(address,bytes32,string,string,string,string,string)"](
         creditorAddressC,
         creditorCodeC,
         institutionCode,
@@ -497,9 +487,7 @@ describe(CollectionConfig.contractName, async function () {
       );
     await contract
       .connect(platform)
-      .functions[
-        "addCreditor(address,bytes32,string,string,string,string,string)"
-      ](
+      ["addCreditor(address,bytes32,string,string,string,string,string)"](
         creditorAddressD,
         creditorCodeD,
         institutionCode,
@@ -556,7 +544,7 @@ describe(CollectionConfig.contractName, async function () {
   //   ).to.be.rejectedWith("NikNeedRegistered");
   // });
 
-  // it("Should Error When cosumer ask for data sharing from provider but the wallet runner is not same as consumer", async function () {
+  // it("Should Error When consumer ask for data sharing from provider but the wallet runner is not same as consumer", async function () {
   //   await expect(
   //     contract
   //       .connect(bankA)
@@ -568,7 +556,7 @@ describe(CollectionConfig.contractName, async function () {
   //   ).to.be.rejectedWith("AddressNotEligible");
   // });
 
-  // it("Success request sharing data and retrive the event emit", async function () {
+  // it("Success request sharing data and retrieve the event emit", async function () {
   //   const nikDebtor = hash32(nik);
   //   const creditorConsumerCode = hash32(codeBankB);
   //   const creditorProviderCode = hash32(codeBankA);
@@ -604,7 +592,7 @@ describe(CollectionConfig.contractName, async function () {
   //   expect(event.args.referenceId).to.equal(referenceId);
   //   expect(event.args.requestDate).to.equal(requestDate);
   // });
-  // it("Success request sharing data and retrive the event emit", async function () {
+  // it("Success request sharing data and retrieve the event emit", async function () {
   //   const nikDebtor = hash32(nik);
   //   const creditorConsumerCode = hash32(codeBankB);
   //   const creditorProviderCode = hash32(codeBankA);
@@ -726,7 +714,7 @@ describe(CollectionConfig.contractName, async function () {
   //   ).to.be.rejectedWith("RequestAlreadyExist");
   // });
 
-  it("Retrive ceredtiors as active creditor from storage contract", async function () {
+  it("Retrieve creditors as active creditor from storage contract", async function () {
     const [creditors, statuses] = await contract.getDebtorDataActiveCreditors(
       hash32(nik)
     );
@@ -743,7 +731,7 @@ describe(CollectionConfig.contractName, async function () {
   //   ).to.be.rejectedWith("AddressNotEligible");
   // });
 
-  it("Success approve delegaton for data sharing", async function () {
+  it("Success approve delegation for data sharing", async function () {
     const nikDebtor = hash32(nik);
     const creditorConsumerCode = hash32(codeBankB);
     const creditorProviderCode = hash32(codeBankA);
@@ -756,11 +744,12 @@ describe(CollectionConfig.contractName, async function () {
     const network = await ethers.provider.getNetwork();
 
     // ✅ Define EIP-712 domain
+    const verifyingContractAddress = await contract.getAddress();
     const domain = {
       name: "DataSharing",
       version: "1",
       chainId: network.chainId,
-      verifyingContract: contract.address,
+      verifyingContract: verifyingContractAddress,
     };
 
     // ✅ Fetch correct nonce
@@ -768,9 +757,8 @@ describe(CollectionConfig.contractName, async function () {
 
     // ✅ Encode function call correctly
     const functionCall = contract.interface.encodeFunctionData(
-      contract.interface.getFunction(
-        "delegate(bytes32,bytes32,bytes32,string,string,string,string)"
-      ),
+      "delegate(bytes32,bytes32,bytes32,string,string,string,string)",
+
       [
         nikDebtor,
         creditorConsumerCode,
@@ -803,7 +791,7 @@ describe(CollectionConfig.contractName, async function () {
     );
 
     // ✅ Verify signature before sending
-    const recoveredSigner = ethers.utils.verifyTypedData(
+    const recoveredSigner = verifyTypedData(
       domain,
       {
         MetaTransaction: [
@@ -828,7 +816,10 @@ describe(CollectionConfig.contractName, async function () {
         signature
       );
     const receipt = await tx.wait();
-    const event = receipt.events?.find(
+    if (!receipt) {
+      throw new Error("Transaction failed");
+    }
+    const event = (receipt as any).events?.find(
       (e: { event: string }) => e.event === "DelegationMetadata"
     );
     expect(event).to.not.be.undefined;
@@ -855,11 +846,11 @@ describe(CollectionConfig.contractName, async function () {
     // expect(event.args.status).to.equal(2);
   });
 
-  it("Shoudl error approving delegation twice", async function () {
+  it("Should error approving delegation twice", async function () {
     await expect(
       contract
         .connect(platform)
-        .functions["delegate(bytes32,bytes32,bytes32)"](
+        ["delegate(bytes32,bytes32,bytes32)"](
           hash32(nik),
           hash32(codeBankB),
           hash32(codeBankA)
@@ -867,7 +858,7 @@ describe(CollectionConfig.contractName, async function () {
     ).to.be.rejectedWith("DelegateAlreadyExist");
   });
 
-  it("Success proccess action for add debtor to creditor and delegate to consumer", async function () {
+  it("Success process action for add debtor to creditor and delegate to consumer", async function () {
     await contract
       .connect(platform)
       .processAction(

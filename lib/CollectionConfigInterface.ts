@@ -6,6 +6,7 @@ export default interface CollectionConfigInterface {
     mainnet: NetworkConfigInterface;
     contractName: string;
     platformAddress: string;
+    platformAddressForLocalHost: string;
     domainEip712: string;
     versionDomain: string;
     contractAddress: string|null;

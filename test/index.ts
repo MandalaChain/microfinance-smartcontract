@@ -17,11 +17,15 @@ describe(CollectionConfig.contractName, async function () {
   let bankB!: SignerWithAddress;
   let customer!: SignerWithAddress;
   let other!: SignerWithAddress;
+  let bankC!: SignerWithAddress;
+  let bankD!: SignerWithAddress;
 
   const nik = "123456789";
   const nikOther = "987654321";
   const codeBankA = "1234";
   const codeBankB = "5678";
+  const codeBankC = "012345";
+  const codeBankD = "567890";
   const codeBankOther = "8765";
 
   function hash32(identifier: string): string {
@@ -31,7 +35,7 @@ describe(CollectionConfig.contractName, async function () {
   }
 
   before(async function () {
-    [owner, platform, bankA, bankB, customer, other] =
+    [owner, platform, bankA, bankB, customer, other, bankC, bankD] =
       await ethers.getSigners();
 
     const Contract = await ethers.getContractFactory(
@@ -80,17 +84,9 @@ describe(CollectionConfig.contractName, async function () {
       contract.getDebtorDataActiveCreditors(hash32(nik))
     ).to.be.rejectedWith("NikNeedRegistered");
 
-    await expect(
-      contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(0))
-    ).to.be.rejectedWith("NikNeedRegistered");
-
-    await expect(
-      contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(1))
-    ).to.be.rejectedWith("NikNeedRegistered");
-
-    await expect(
-      contract.getActiveCreditorsByStatus(hash32(nik), BigNumber.from(2))
-    ).to.be.rejectedWith("NikNeedRegistered");
+    await expect(contract.getActiveCreditors(hash32(nik))).to.be.rejectedWith(
+      "NikNeedRegistered"
+    );
   });
 
   it("Check only platform", async function () {
@@ -261,26 +257,15 @@ describe(CollectionConfig.contractName, async function () {
     expect(recoveredSigner).to.equal(await platform.getAddress());
 
     // ✅ Execute meta-transaction
-    let receipt;
-    try {
-      const tx = await contract
-        .connect(platform)
-        .executeMetaTransaction(
-          message.from,
-          message.nonce,
-          message.functionCall,
-          signature
-        );
-      receipt = await tx.wait();
-    } catch (error: any) {
-      console.error("Transaction failed! Revert Reason:", error);
-      if (error.data) {
-        console.error(
-          "Decoded Revert Reason:",
-          ethers.utils.toUtf8String(error.data)
-        );
-      }
-    }
+    const tx = await contract
+      .connect(platform)
+      .executeMetaTransaction(
+        message.from,
+        message.nonce,
+        message.functionCall,
+        signature
+      );
+    const receipt = await tx.wait();
 
     // ✅ Check for event emission
     const event = receipt.events?.find(
@@ -455,7 +440,7 @@ describe(CollectionConfig.contractName, async function () {
     );
 
     expect(creditors).to.deep.equal([await bankA.getAddress()]);
-    expect(statuses).to.deep.equal([2]);
+    expect(statuses).to.deep.equal([1]);
   });
 
   it("Success adding creditor B and retrive event emit", async function () {
@@ -492,65 +477,96 @@ describe(CollectionConfig.contractName, async function () {
     expect(event.args.approvalDate).to.equal(approvalDate);
     expect(event.args.signerName).to.equal(signerName);
     expect(event.args.signerPosition).to.equal(signerPosition);
+
+    const creditorAddressC = await bankC.getAddress();
+    const creditorCodeC = hash32(codeBankC);
+    const creditorAddressD = await bankD.getAddress();
+    const creditorCodeD = hash32(codeBankD);
+    await contract
+      .connect(platform)
+      .functions[
+        "addCreditor(address,bytes32,string,string,string,string,string)"
+      ](
+        creditorAddressC,
+        creditorCodeC,
+        institutionCode,
+        institutionName,
+        approvalDate,
+        signerName,
+        signerPosition
+      );
+    await contract
+      .connect(platform)
+      .functions[
+        "addCreditor(address,bytes32,string,string,string,string,string)"
+      ](
+        creditorAddressD,
+        creditorCodeD,
+        institutionCode,
+        institutionName,
+        approvalDate,
+        signerName,
+        signerPosition
+      );
   });
 
-  it("Should Error When creditor ask for data sharing from not registered creditor", async function () {
-    await expect(
-      contract
-        .connect(other)
-        .functions["requestDelegation(bytes32,bytes32,bytes32)"](
-          hash32(nik),
-          hash32(codeBankOther),
-          hash32(codeBankA)
-        )
-    ).to.be.rejectedWith("NotEligible");
+  // it("Should Error When creditor ask for data sharing from not registered creditor", async function () {
+  //   await expect(
+  //     contract
+  //       .connect(other)
+  //       .functions["requestDelegation(bytes32,bytes32,bytes32)"](
+  //         hash32(nik),
+  //         hash32(codeBankOther),
+  //         hash32(codeBankA)
+  //       )
+  //   ).to.be.rejectedWith("NotEligible");
 
-    await expect(
-      contract
-        .connect(bankB)
-        .functions["requestDelegation(bytes32,bytes32,bytes32)"](
-          hash32(nik),
-          hash32(codeBankB),
-          hash32(codeBankOther)
-        )
-    ).to.be.rejectedWith("NotEligible");
-  });
+  //   await expect(
+  //     contract
+  //       .connect(bankB)
+  //       .functions["requestDelegation(bytes32,bytes32,bytes32)"](
+  //         hash32(nik),
+  //         hash32(codeBankB),
+  //         hash32(codeBankOther)
+  //       )
+  //   ).to.be.rejectedWith("NotEligible");
+  // });
 
-  it("Should Error When consumer ask for data sharing from wrong provider of debtor data", async function () {
-    await expect(
-      contract
-        .connect(platform)
-        .functions["requestDelegation(bytes32,bytes32,bytes32)"](
-          hash32(nik),
-          hash32(codeBankA),
-          hash32(codeBankB)
-        )
-    ).to.be.rejectedWith("ProviderNotEligible");
-  });
+  // it("Should Error When consumer ask for data sharing from wrong provider of debtor data", async function () {
+  //   await expect(
+  //     contract
+  //       .connect(platform)
+  //       .functions["requestDelegation(bytes32,bytes32,bytes32)"](
+  //         hash32(nik),
+  //         hash32(codeBankA),
+  //         hash32(codeBankB)
+  //       )
+  //   ).to.be.rejectedWith("ProviderNotEligible");
+  // });
 
-  it("Should Error When consumer ask for data sharing from provider but the debtor not registered", async function () {
-    await expect(
-      contract
-        .connect(platform)
-        .functions["requestDelegation(bytes32,bytes32,bytes32)"](
-          hash32(nikOther),
-          hash32(codeBankB),
-          hash32(codeBankA)
-        )
-    ).to.be.rejectedWith("NikNeedRegistered");
-  });
+  // it("Should Error When consumer ask for data sharing from provider but the debtor not registered", async function () {
+  //   await expect(
+  //     contract
+  //       .connect(platform)
+  //       .functions["requestDelegation(bytes32,bytes32,bytes32)"](
+  //         hash32(nikOther),
+  //         hash32(codeBankB),
+  //         hash32(codeBankA)
+  //       )
+  //   ).to.be.rejectedWith("NikNeedRegistered");
+  // });
 
-  it("Should Error When cosumer ask for data sharing from provider but the wallet runner is not same as consumer", async function () {
-    await expect(
-      contract
-        .connect(bankA)
-        .functions["requestDelegation(bytes32,bytes32,bytes32)"](
-          hash32(nik),
-          hash32(codeBankB),
-          hash32(codeBankA)
-        )
-    ).to.be.rejectedWith("AddressNotEligible");
-  });
+  // it("Should Error When cosumer ask for data sharing from provider but the wallet runner is not same as consumer", async function () {
+  //   await expect(
+  //     contract
+  //       .connect(bankA)
+  //       .functions["requestDelegation(bytes32,bytes32,bytes32)"](
+  //         hash32(nik),
+  //         hash32(codeBankB),
+  //         hash32(codeBankA)
+  //       )
+  //   ).to.be.rejectedWith("AddressNotEligible");
+  // });
 
   // it("Success request sharing data and retrive the event emit", async function () {
   //   const nikDebtor = hash32(nik);
@@ -588,7 +604,146 @@ describe(CollectionConfig.contractName, async function () {
   //   expect(event.args.referenceId).to.equal(referenceId);
   //   expect(event.args.requestDate).to.equal(requestDate);
   // });
-  it("Success request sharing data and retrive the event emit", async function () {
+  // it("Success request sharing data and retrive the event emit", async function () {
+  //   const nikDebtor = hash32(nik);
+  //   const creditorConsumerCode = hash32(codeBankB);
+  //   const creditorProviderCode = hash32(codeBankA);
+  //   const requestId = "request id";
+  //   const transactionId = "transaction id";
+  //   const referenceId = "reference id";
+  //   const requestDate = "request data";
+
+  //   // ✅ Get correct chainId
+  //   const network = await ethers.provider.getNetwork();
+
+  //   // ✅ Define EIP-712 domain
+  //   const domain = {
+  //     name: "DataSharing",
+  //     version: "1",
+  //     chainId: network.chainId,
+  //     verifyingContract: contract.address,
+  //   };
+
+  //   // ✅ Fetch correct nonce
+  //   const nonce = await contract.nonces(await platform.getAddress());
+
+  //   // ✅ Encode function call correctly
+  //   const functionCall = contract.interface.encodeFunctionData(
+  //     contract.interface.getFunction(
+  //       "requestDelegation(bytes32,bytes32,bytes32,string,string,string,string)"
+  //     ),
+  //     [
+  //       nikDebtor,
+  //       creditorConsumerCode,
+  //       creditorProviderCode,
+  //       requestId,
+  //       transactionId,
+  //       referenceId,
+  //       requestDate,
+  //     ]
+  //   );
+
+  //   // ✅ Prepare message for signing
+  //   const message = {
+  //     from: await platform.getAddress(),
+  //     nonce: Number(nonce),
+  //     functionCall: functionCall,
+  //   };
+
+  //   // ✅ Sign meta-transaction
+  //   const signature = await platform._signTypedData(
+  //     domain,
+  //     {
+  //       MetaTransaction: [
+  //         { name: "from", type: "address" },
+  //         { name: "nonce", type: "uint256" },
+  //         { name: "functionCall", type: "bytes" },
+  //       ],
+  //     },
+  //     message
+  //   );
+
+  //   // ✅ Verify signature before sending
+  //   const recoveredSigner = ethers.utils.verifyTypedData(
+  //     domain,
+  //     {
+  //       MetaTransaction: [
+  //         { name: "from", type: "address" },
+  //         { name: "nonce", type: "uint256" },
+  //         { name: "functionCall", type: "bytes" },
+  //       ],
+  //     },
+  //     message,
+  //     signature
+  //   );
+
+  //   expect(recoveredSigner).to.equal(await platform.getAddress());
+
+  //   // ✅ Execute meta-transaction
+  //   let receipt;
+  //   try {
+  //     const tx = await contract
+  //       .connect(platform)
+  //       .executeMetaTransaction(
+  //         message.from,
+  //         message.nonce,
+  //         message.functionCall,
+  //         signature
+  //       );
+  //     receipt = await tx.wait();
+  //   } catch (error: any) {
+  //     console.error("Transaction failed! Revert Reason:", error);
+  //     if (error.data) {
+  //       console.error(
+  //         "Decoded Revert Reason:",
+  //         ethers.utils.toUtf8String(error.data)
+  //       );
+  //     }
+  //   }
+
+  //   const event = receipt.events?.find(
+  //     (e: { event: string }) => e.event === "DelegationRequestedMetadata"
+  //   );
+  //   expect(event).to.not.be.undefined;
+  //   expect(event.args.nik).to.equal(nikDebtor);
+  //   expect(event.args.requestId).to.equal(requestId);
+  //   expect(event.args.creditorConsumerCode).to.equal(creditorConsumerCode);
+  //   expect(event.args.creditorProviderCode).to.equal(creditorProviderCode);
+  //   expect(event.args.transactionId).to.equal(transactionId);
+  //   expect(event.args.referenceId).to.equal(referenceId);
+  //   expect(event.args.requestDate).to.equal(requestDate);
+  // });
+
+  // it("Should Error When consumer ask for data sharing twice", async function () {
+  //   await expect(
+  //     contract
+  //       .connect(platform)
+  //       .functions["requestDelegation(bytes32,bytes32,bytes32)"](
+  //         hash32(nik),
+  //         hash32(codeBankB),
+  //         hash32(codeBankA)
+  //       )
+  //   ).to.be.rejectedWith("RequestAlreadyExist");
+  // });
+
+  it("Retrive ceredtiors as active creditor from storage contract", async function () {
+    const [creditors, statuses] = await contract.getDebtorDataActiveCreditors(
+      hash32(nik)
+    );
+
+    expect(creditors).to.deep.equal([await bankA.getAddress()]); // bank a and bank b
+    expect(statuses).to.deep.equal([1]); // approve and none
+  });
+
+  // it("Should Error When provider approve delegate for data sharing from consumer but the wallet runner is not same as provider", async function () {
+  //   await expect(
+  //     contract
+  //       .connect(other)
+  //       .delegate(hash32(nik), hash32(codeBankB), hash32(codeBankA), 1)
+  //   ).to.be.rejectedWith("AddressNotEligible");
+  // });
+
+  it("Success approve delegaton for data sharing", async function () {
     const nikDebtor = hash32(nik);
     const creditorConsumerCode = hash32(codeBankB);
     const creditorProviderCode = hash32(codeBankA);
@@ -614,7 +769,7 @@ describe(CollectionConfig.contractName, async function () {
     // ✅ Encode function call correctly
     const functionCall = contract.interface.encodeFunctionData(
       contract.interface.getFunction(
-        "requestDelegation(bytes32,bytes32,bytes32,string,string,string,string)"
+        "delegate(bytes32,bytes32,bytes32,string,string,string,string)"
       ),
       [
         nikDebtor,
@@ -664,29 +819,17 @@ describe(CollectionConfig.contractName, async function () {
     expect(recoveredSigner).to.equal(await platform.getAddress());
 
     // ✅ Execute meta-transaction
-    let receipt;
-    try {
-      const tx = await contract
-        .connect(platform)
-        .executeMetaTransaction(
-          message.from,
-          message.nonce,
-          message.functionCall,
-          signature
-        );
-      receipt = await tx.wait();
-    } catch (error: any) {
-      console.error("Transaction failed! Revert Reason:", error);
-      if (error.data) {
-        console.error(
-          "Decoded Revert Reason:",
-          ethers.utils.toUtf8String(error.data)
-        );
-      }
-    }
-
+    const tx = await contract
+      .connect(platform)
+      .executeMetaTransaction(
+        message.from,
+        message.nonce,
+        message.functionCall,
+        signature
+      );
+    const receipt = await tx.wait();
     const event = receipt.events?.find(
-      (e: { event: string }) => e.event === "DelegationRequestedMetadata"
+      (e: { event: string }) => e.event === "DelegationMetadata"
     );
     expect(event).to.not.be.undefined;
     expect(event.args.nik).to.equal(nikDebtor);
@@ -696,61 +839,42 @@ describe(CollectionConfig.contractName, async function () {
     expect(event.args.transactionId).to.equal(transactionId);
     expect(event.args.referenceId).to.equal(referenceId);
     expect(event.args.requestDate).to.equal(requestDate);
-  });
 
-  it("Should Error When consumer ask for data sharing twice", async function () {
-    await expect(
-      contract
-        .connect(platform)
-        .functions["requestDelegation(bytes32,bytes32,bytes32)"](
-          hash32(nik),
-          hash32(codeBankB),
-          hash32(codeBankA)
-        )
-    ).to.be.rejectedWith("RequestAlreadyExist");
-  });
+    // const tx = await contract
+    //   .connect(platform)
+    //   .delegate(hash32(nik), hash32(codeBankB), hash32(codeBankA), 2);
 
-  it("Retrive ceredtiors as active creditor from storage contract", async function () {
-    const [creditors, statuses] = await contract.getDebtorDataActiveCreditors(
-      hash32(nik)
-    );
-
-    expect(creditors).to.deep.equal([
-      await bankA.getAddress(),
-      await bankB.getAddress(),
-    ]); // bank a and bank b
-    expect(statuses).to.deep.equal([2, 3]); // approve and pending
-  });
-
-  it("Should Error When provider approve delegate for data sharing from consumer but the wallet runner is not same as provider", async function () {
-    await expect(
-      contract
-        .connect(other)
-        .delegate(hash32(nik), hash32(codeBankB), hash32(codeBankA), 1)
-    ).to.be.rejectedWith("AddressNotEligible");
-  });
-
-  it("Success approve delegaton for data sharing", async function () {
-    const tx = await contract
-      .connect(platform)
-      .delegate(hash32(nik), hash32(codeBankB), hash32(codeBankA), 2);
-
-    const receipt = await tx.wait();
-    const event = receipt.events?.find(
-      (e: { event: string }) => e.event === "Delegate"
-    );
-    expect(event).to.not.be.undefined;
-    expect(event.args.nik).to.equal(hash32(nik));
-    expect(event.args.creditorConsumerCode).to.equal(hash32(codeBankB));
-    expect(event.args.creditorProviderCode).to.equal(hash32(codeBankA));
-    expect(event.args.status).to.equal(2);
+    // const receipt = await tx.wait();
+    // const event = receipt.events?.find(
+    //   (e: { event: string }) => e.event === "Delegate"
+    // );
+    // expect(event).to.not.be.undefined;
+    // expect(event.args.nik).to.equal(hash32(nik));
+    // expect(event.args.creditorConsumerCode).to.equal(hash32(codeBankB));
+    // expect(event.args.creditorProviderCode).to.equal(hash32(codeBankA));
+    // expect(event.args.status).to.equal(2);
   });
 
   it("Shoudl error approving delegation twice", async function () {
     await expect(
       contract
         .connect(platform)
-        .delegate(hash32(nik), hash32(codeBankB), hash32(codeBankA), 2)
-    ).to.be.rejectedWith("InvalidStatusApproveRequest");
+        .functions["delegate(bytes32,bytes32,bytes32)"](
+          hash32(nik),
+          hash32(codeBankB),
+          hash32(codeBankA)
+        )
+    ).to.be.rejectedWith("DelegateAlreadyExist");
+  });
+
+  it("Success proccess action for add debtor to creditor and delegate to consumer", async function () {
+    await contract
+      .connect(platform)
+      .processAction(
+        hash32(nik),
+        hash32(codeBankD),
+        hash32(codeBankC),
+        "metadata test"
+      );
   });
 });

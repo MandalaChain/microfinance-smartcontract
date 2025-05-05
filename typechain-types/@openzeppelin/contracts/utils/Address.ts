@@ -14,15 +14,15 @@ import type {
   TypedDeferredTopicFilter,
   TypedEventLog,
   TypedListener,
-} from "../../common";
+} from "../../../common";
 
-export interface DelegationInterface extends Interface {}
+export interface AddressInterface extends Interface {}
 
-export interface Delegation extends BaseContract {
-  connect(runner?: ContractRunner | null): Delegation;
+export interface Address extends BaseContract {
+  connect(runner?: ContractRunner | null): Address;
   waitForDeployment(): Promise<this>;
 
-  interface: DelegationInterface;
+  interface: AddressInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,

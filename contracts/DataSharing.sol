@@ -27,6 +27,7 @@ pragma solidity ^0.8.20;
 
 import {Delegation} from "./core/Delegation.sol";
 import {MetaTransaction, EIP712, Ownable} from "./core/MetaTransaction.sol";
+import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
 
 /**
  * @title DataSharing
@@ -35,6 +36,8 @@ import {MetaTransaction, EIP712, Ownable} from "./core/MetaTransaction.sol";
  * @dev Inherits from `Delegation` (which itself extends `Registration`) and `Ownable`.
  */
 contract DataSharing is Delegation, MetaTransaction {
+    error AddressNotEligible();
+
     // ------------------------------------------------------------------------
     //                          State Variables
     // ------------------------------------------------------------------------
@@ -130,7 +133,7 @@ contract DataSharing is Delegation, MetaTransaction {
      * @param referenceId          An external reference ID (e.g., from another system).
      * @param requestDate          The date the request was initiated.
      */
-    event DelegationRequestedMetadata(
+    event DelegationMetadata(
         bytes32 indexed nik,
         string requestId,
         bytes32 creditorConsumerCode,
@@ -160,6 +163,19 @@ contract DataSharing is Delegation, MetaTransaction {
         string startDate,
         string endDate,
         uint256 quota
+    );
+
+    /**
+     * @param nik                   The unique identifier (hashed) for the debtor.
+     * @param consumer              The code (hashed) of the creditor acting as consumer.
+     * @param provider              The code (hashed) of the creditor acting as provider.
+     * @param metadata              Additional metadata for the action request.
+     */
+    event ProcessAction(
+        bytes32 indexed nik,
+        bytes32 indexed consumer,
+        bytes32 indexed provider,
+        string metadata
     );
 
     // ------------------------------------------------------------------------
@@ -268,13 +284,13 @@ contract DataSharing is Delegation, MetaTransaction {
      * @param provider The code (hashed) of the creditor acting as provider.
      * @notice Reverts if the caller is not the consumer or if an identical request is already pending.
      */
-    function requestDelegation(
-        bytes32 nik,
-        bytes32 consumer,
-        bytes32 provider
-    ) external onlyPlatform {
-        _requestDelegation(nik, consumer, provider);
-    }
+    // function requestDelegation(
+    //     bytes32 nik,
+    //     bytes32 consumer,
+    //     bytes32 provider
+    // ) external onlyPlatform {
+    //     _requestDelegation(nik, consumer, provider);
+    // }
 
     /**
      * @dev Overloaded version that also emits additional metadata for the delegation request.
@@ -286,7 +302,7 @@ contract DataSharing is Delegation, MetaTransaction {
      * @param referenceId   Another external reference ID.
      * @param requestDate   The date the request is made.
      */
-    function requestDelegation(
+    function delegate(
         bytes32 nik,
         bytes32 consumer,
         bytes32 provider,
@@ -295,8 +311,9 @@ contract DataSharing is Delegation, MetaTransaction {
         string memory referenceId,
         string memory requestDate
     ) external onlyPlatform {
-        _requestDelegation(nik, consumer, provider);
-        emit DelegationRequestedMetadata(
+        // _requestDelegation(nik, consumer, provider);
+        _delegate(nik, consumer, provider, Status.APPROVED);
+        emit DelegationMetadata(
             nik,
             requestId,
             consumer,
@@ -312,16 +329,14 @@ contract DataSharing is Delegation, MetaTransaction {
      * @param nik      The unique identifier (hashed) of the debtor.
      * @param consumer The code (hashed) of the creditor acting as consumer.
      * @param provider The code (hashed) of the creditor acting as provider.
-     * @param status   The final status for the request (APPROVED or REJECTED).
      * @notice Reverts if the caller is not the provider or if the request is not pending.
      */
     function delegate(
         bytes32 nik,
         bytes32 consumer,
-        bytes32 provider,
-        Status status
-    ) external onlyPlatform{
-        _delegate(nik, consumer, provider, status);
+        bytes32 provider
+    ) external onlyPlatform {
+        _delegate(nik, consumer, provider, Status.APPROVED);
     }
 
     /**
@@ -360,6 +375,17 @@ contract DataSharing is Delegation, MetaTransaction {
         );
     }
 
+    // combine function delegate with addDebtorToCreditor
+    function processAction(
+        bytes32 nik,
+        bytes32 consumer,
+        bytes32 provider,
+        string memory metadta
+    ) external onlyPlatform {
+        _processAction(nik, consumer, provider);
+        emit ProcessAction(nik, consumer, provider, metadta);
+    }
+
     /**
      * @dev Retrieves all creditors for a given debtor, along with their respective statuses.
      * @param nik The unique identifier (hashed) for the debtor.
@@ -379,15 +405,13 @@ contract DataSharing is Delegation, MetaTransaction {
     /**
      * @dev Returns the list of creditor addresses for a given debtor that match a specific status.
      * @param nik    The unique identifier (hashed) for the debtor.
-     * @param status The status to filter (REJECTED, APPROVED, or PENDING).
      * @return An array of creditor addresses matching the given status.
      * @notice Reverts if `_nik` is not registered.
      */
-    function getActiveCreditorsByStatus(
-        bytes32 nik,
-        Status status
+    function getActiveCreditors(
+        bytes32 nik
     ) external view returns (address[] memory) {
-        return _getActiveCreditorsByStatus(nik, status);
+        return _getActiveCreditors(nik);
     }
 
     /**
@@ -396,12 +420,12 @@ contract DataSharing is Delegation, MetaTransaction {
      * @param creditor The unique identifier (hashed) for the creditor.
      * @return status  An status from request delegation.
      */
-    function getStatusRequest(
-        bytes32 nik,
-        bytes32 creditor
-    ) external view returns (Status) {
-        return _getStatusRequest(nik, creditor);
-    }
+    // function getStatusRequest(
+    //     bytes32 nik,
+    //     bytes32 creditor
+    // ) external view returns (Status) {
+    //     return _getStatusRequest(nik, creditor);
+    // }
 
     // ------------------------------------------------------------------------
     //                              Purchases

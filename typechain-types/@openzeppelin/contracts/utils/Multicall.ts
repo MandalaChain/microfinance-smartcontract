@@ -3,7 +3,9 @@
 /* eslint-disable */
 import type {
   BaseContract,
+  BytesLike,
   FunctionFragment,
+  Result,
   Interface,
   ContractRunner,
   ContractMethod,
@@ -14,15 +16,25 @@ import type {
   TypedDeferredTopicFilter,
   TypedEventLog,
   TypedListener,
-} from "../../common";
+  TypedContractMethod,
+} from "../../../common";
 
-export interface DelegationInterface extends Interface {}
+export interface MulticallInterface extends Interface {
+  getFunction(nameOrSignature: "multicall"): FunctionFragment;
 
-export interface Delegation extends BaseContract {
-  connect(runner?: ContractRunner | null): Delegation;
+  encodeFunctionData(
+    functionFragment: "multicall",
+    values: [BytesLike[]]
+  ): string;
+
+  decodeFunctionResult(functionFragment: "multicall", data: BytesLike): Result;
+}
+
+export interface Multicall extends BaseContract {
+  connect(runner?: ContractRunner | null): Multicall;
   waitForDeployment(): Promise<this>;
 
-  interface: DelegationInterface;
+  interface: MulticallInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -61,9 +73,15 @@ export interface Delegation extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
+  multicall: TypedContractMethod<[data: BytesLike[]], [string[]], "nonpayable">;
+
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
+
+  getFunction(
+    nameOrSignature: "multicall"
+  ): TypedContractMethod<[data: BytesLike[]], [string[]], "nonpayable">;
 
   filters: {};
 }

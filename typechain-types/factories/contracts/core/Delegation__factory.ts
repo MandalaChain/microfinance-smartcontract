@@ -11,11 +11,6 @@ import type {
 const _abi = [
   {
     inputs: [],
-    name: "AddressNotEligible",
-    type: "error",
-  },
-  {
-    inputs: [],
     name: "AlreadyExist",
     type: "error",
   },
@@ -26,17 +21,17 @@ const _abi = [
   },
   {
     inputs: [],
+    name: "DelegateAlreadyExist",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "InvalidAddress",
     type: "error",
   },
   {
     inputs: [],
     name: "InvalidHash",
-    type: "error",
-  },
-  {
-    inputs: [],
-    name: "InvalidStatusApproveRequest",
     type: "error",
   },
   {
@@ -53,42 +48,6 @@ const _abi = [
     inputs: [],
     name: "ProviderNotEligible",
     type: "error",
-  },
-  {
-    inputs: [],
-    name: "RequestAlreadyExist",
-    type: "error",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "nik",
-        type: "bytes32",
-      },
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "creditorConsumerCode",
-        type: "bytes32",
-      },
-      {
-        indexed: true,
-        internalType: "bytes32",
-        name: "creditorProviderCode",
-        type: "bytes32",
-      },
-      {
-        indexed: false,
-        internalType: "enum Delegation.Status",
-        name: "status",
-        type: "uint8",
-      },
-    ],
-    name: "Delegate",
-    type: "event",
   },
 ] as const;
 

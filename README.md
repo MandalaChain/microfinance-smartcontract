@@ -185,14 +185,9 @@ networks: {
       timeout: 60000,
       gasMultiplier: DEFAULT_GAS_MULTIPLIER,
     },
-    niskala: {
-      url: 'https://mlg1.mandalachain.io',
-      chainId: 6025,
-      accounts: process.env.NETWORK_TESTNET_PRIVATE_KEY ? [process.env.NETWORK_TESTNET_PRIVATE_KEY] : [],
-    },
-    devnet: {
-      url: 'https://nbs.mandalachain.io',
-      chainId: 895670,
+    mandalaPaseo: {
+      url: 'https://rpc1.paseo.mandalachain.io',
+      chainId: 4818,
       accounts: process.env.NETWORK_TESTNET_PRIVATE_KEY ? [process.env.NETWORK_TESTNET_PRIVATE_KEY] : [],
     },
   },

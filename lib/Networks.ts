@@ -95,22 +95,12 @@ export const arbitrumOne: NetworkConfigInterface = {
 /*
  * Mandala
  */
-export const niskala: NetworkConfigInterface = {
+export const mandalaPaseo: NetworkConfigInterface = {
     chainId: 6025,
     symbol: "KPGT",
     blockExplorer: {
-        name: "Mandala Niskala",
-        generatorContractUrl: (contractAddress: string) => `https://niskala.mandalachain.io/address/${contractAddress}`,
-        generateTransactionUrl: (transactionAddress: string) => `https://niskala.mandalachain.io/tx/${transactionAddress}`,
-    },
-}
-
-export const devnet: NetworkConfigInterface = {
-    chainId: 895670,
-    symbol: "KPGD",
-    blockExplorer: {
-        name: "Mandala Devnet",
-        generatorContractUrl: (contractAddress: string) => `https://nbs-explorer.mandalachain.io/address/${contractAddress}`,
-        generateTransactionUrl: (transactionAddress: string) => `https://nbs-explorer.mandalachain.io/tx/${transactionAddress}`,
+        name: "Mandala Paseo",
+        generatorContractUrl: (contractAddress: string) => `https://explorer.paseo.mandalachain.io/address/${contractAddress}`,
+        generateTransactionUrl: (transactionAddress: string) => `https://explorer.paseo.mandalachain.io/tx/${transactionAddress}`,
     },
 }

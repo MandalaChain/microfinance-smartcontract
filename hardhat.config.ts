@@ -96,14 +96,9 @@ const config: HardhatUserConfig = {
       timeout: 60000,
       gasMultiplier: DEFAULT_GAS_MULTIPLIER,
     },
-    niskala: {
-      url: 'https://mlg1.mandalachain.io',
-      chainId: 6025,
-      accounts: process.env.NETWORK_TESTNET_PRIVATE_KEY ? [process.env.NETWORK_TESTNET_PRIVATE_KEY] : [],
-    },
-    devnet: {
-      url: 'https://nbs.mandalachain.io',
-      chainId: 895670,
+    mandalaPaseo: {
+      url: 'https://rpc1.paseo.mandalachain.io',
+      chainId: 4818,
       accounts: process.env.NETWORK_TESTNET_PRIVATE_KEY ? [process.env.NETWORK_TESTNET_PRIVATE_KEY] : [],
     },
   },
@@ -127,9 +122,8 @@ const config: HardhatUserConfig = {
       // Arbitrum
       arbitrumGoerli: process.env.BLOCK_EXPLORER_API_KEY!,
       arbitrumOne: process.env.BLOCK_EXPLORER_API_KEY!,
-      // Niskala
-      niskala: process.env.BLOCK_EXPLORER_API_KEY! || "NO_API_KEY_NEEDED",
-      devnet: process.env.BLOCK_EXPLORER_API_KEY!,
+      // Mandala Paseo Testnet
+      mandalaPaseo: process.env.BLOCK_EXPLORER_API_KEY! || "NO_API_KEY_NEEDED",
     },
     customChains: [
       {
@@ -141,19 +135,11 @@ const config: HardhatUserConfig = {
         }
       },
       {
-        network: "niskala",
+        network: "mandalaPaseo",
         chainId: 6025,
         urls: {
-          apiURL: "https://niskala.mandalachain.io/api",
-          browserURL: "https://niskala.mandalachain.io"
-        }
-      },
-      {
-        network: "devnet",
-        chainId: 895670,
-        urls: {
-          apiURL: "https://nbs-explorer.mandalachain.io/api",
-          browserURL: "https://https://nbs-explorer.mandalachain.io"
+          apiURL: "https://explorer.paseo.mandalachain.io/api/eth-rpc",
+          browserURL: "https://explorer.paseo.mandalachain.io"
         }
       },
     ],

@@ -25,9 +25,9 @@
 
 pragma solidity ^0.8.20;
 
+import {Ownable, Context} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Delegation} from "./core/Delegation.sol";
-import {MetaTransaction, EIP712, Ownable} from "./core/MetaTransaction.sol";
-import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
+import {MetaTransaction} from "./core/MetaTransaction.sol";
 
 /**
  * @title DataSharing
@@ -35,7 +35,7 @@ import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
  *         while emitting metadata-driven events for tracking and auditing.
  * @dev Inherits from `Delegation` (which itself extends `Registration`) and `Ownable`.
  */
-contract DataSharing is Delegation, MetaTransaction {
+contract DataSharing is Delegation, MetaTransaction, Ownable {
     error AddressNotEligible();
 
     // ------------------------------------------------------------------------
@@ -51,18 +51,8 @@ contract DataSharing is Delegation, MetaTransaction {
     //                         Constructor & Modifiers
     // ------------------------------------------------------------------------
 
-    /**
-     * @dev Sets the initial platform address and initializes `Ownable` with the contract deployer.
-     * @param _setNewPlatform The address of the platform authorized for special operations.
-     * @param _domain         The domain name for EIP712.
-     * @param _version        The contract version for EIP712.
-     */
-    constructor(
-        address _setNewPlatform,
-        string memory _domain,
-        string memory _version
-    ) Ownable(msg.sender) EIP712(_domain, _version) {
-        setPlatform(_setNewPlatform);
+    constructor() Ownable(msg.sender) {
+        setPlatform(msg.sender);
     }
 
     /**
@@ -380,10 +370,10 @@ contract DataSharing is Delegation, MetaTransaction {
         bytes32 nik,
         bytes32 consumer,
         bytes32 provider,
-        string memory metadta
+        string memory metadata
     ) external onlyPlatform {
         _processAction(nik, consumer, provider);
-        emit ProcessAction(nik, consumer, provider, metadta);
+        emit ProcessAction(nik, consumer, provider, metadata);
     }
 
     /**
@@ -478,27 +468,51 @@ contract DataSharing is Delegation, MetaTransaction {
         emit SetNewAddressPlatform(setNewPlatform);
     }
 
-    // ------------------------------------------------------------------------
-    //                             EIP712 Functions
-    // ------------------------------------------------------------------------
+    // ------------------------------------------------------------------
+    //  MetaTransaction Implementation
+    // ------------------------------------------------------------------
+
+    /// @dev EIP-712 domain name and version for meta-transaction verification.
+    function _domainNameAndVersion()
+        internal
+        view
+        virtual
+        override
+        returns (string memory name, string memory version)
+    {
+        name = "Data-Sharing-MetaTransaction";
+        version = "1.0";
+    }
+
     /**
-     * @dev This function is used to execute a meta transaction.
-     * @param from         The sender of the meta transaction.
-     * @param nonce        The nonce associated with the meta transaction.
-     * @param functionCall The function call associated with the meta transaction.
-     * @param signature    The signature of the meta transaction.
-     *
-     * @notice This function uses the `verify` function from the `EIP712` library to verify the signature.
-     *         It is a public function that can be called by any address.
-     *         It takes in four parameters: the sender, nonce, function call, and signature.
-     *         It emits a `MetaTransactionExecuted` event.
+     * @notice Executes a meta-transaction on behalf of `from` after validating
+     *         the EIP-712 signature and nonce.
+     * @param from         The original signer whose intent is being relayed.
+     * @param nonce        Must match the current nonce for `from`.
+     * @param functionCall ABI-encoded function call to execute on this contract.
+     * @param signature    EIP-712 signature produced by `from` over the payload.
      */
     function executeMetaTransaction(
         address from,
         uint256 nonce,
         bytes calldata functionCall,
         bytes calldata signature
-    ) external onlyPlatform {
+    ) external {
         _executeMetaTransaction(from, nonce, functionCall, signature);
+    }
+
+    /**
+     * @notice Returns the actual sender of the transaction, supporting meta-transactions
+     * @dev Overrides both MetaTransaction and Context versions to prioritize meta-transaction logic.
+     *      This enables gasless transactions where a relayer can submit transactions on behalf of users.
+     * @return sender The actual transaction sender (may differ from msg.sender in meta-transactions)
+     */
+    function _msgSender()
+        internal
+        view
+        override(MetaTransaction, Context)
+        returns (address sender)
+    {
+        return MetaTransaction._msgSender();
     }
 }

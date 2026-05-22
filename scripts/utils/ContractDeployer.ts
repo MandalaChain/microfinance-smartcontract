@@ -1,7 +1,7 @@
 import { BaseContract, Signer } from "ethers";
 import { ethers } from "hardhat";
 import { explorerAddress, updateConfig, waitForTransaction } from "./helpers";
-import { shouldVerifyContracts } from "./networkConfig";
+import { getContractConfigKey, shouldVerifyContracts } from "./networkConfig";
 import { verifyContract } from "./verifyContracts";
 
 export interface DeployContractOptions {
@@ -154,6 +154,8 @@ export class ContractDeployer {
 
   private async updateConfig(key: string, address: string): Promise<void> {
     console.log("Update address on config...");
-    await updateConfig(key, address);
+    const configKey =
+      key === "contractAddress" ? getContractConfigKey(this.chainId) : key;
+    await updateConfig(configKey, address);
   }
 }

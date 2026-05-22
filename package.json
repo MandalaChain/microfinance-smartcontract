@@ -18,10 +18,9 @@
     "test-extended": "EXTENDED_TESTS=1 hardhat test",
     "test-gas": "REPORT_GAS=1 hardhat test",
     "local-node": "hardhat node",
-    "deploy:contract": "hardhat run scripts/1_deploy.ts",
-    "deploy:localhost": "hardhat run scripts/1_deploy.ts --network localhost",
-    "verify": "hardhat run scripts/1_verify.ts",
-    "verify:contract": "hardhat run scripts/1_verify.ts"
+    "deploy:contract": "hardhat run scripts/0_deploy.ts",
+    "deploy:localhost": "hardhat run scripts/0_deploy.ts --network localhost",
+    "verify": "hardhat run scripts/1_verify.ts"
   },
   "dependencies": {
     "@nomicfoundation/hardhat-ethers": "^3.0.6",
@@ -37,6 +36,7 @@
     "hardhat-gas-reporter": "^2.1.1",
     "keccak256": "^1.0.6",
     "merkletreejs": "^0.3.11",
+    "solady": "^0.1.26",
     "solidity-coverage": "^0.8.12",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",

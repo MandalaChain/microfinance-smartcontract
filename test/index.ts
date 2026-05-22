@@ -10,7 +10,7 @@ import {
   TypedDataDomain,
 } from "ethers";
 import CollectionConfig from "../config/CollectionConfig";
-import { NftContractType } from "../lib/NftContractProvider";
+import { NftContractType } from "../lib/DataSharingContractProvider";
 // import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 chai.use(ChaiAsPromised);
@@ -196,7 +196,7 @@ describe(CollectionConfig.contractName, async function () {
     };
 
     // ✅ Fetch correct nonce
-    const nonce = await contract.nonces(await platform.getAddress());
+    const nonce = await contract.noncesTx(await platform.getAddress());
 
     // ✅ Encode function call correctly
     const functionCall = contract.interface.encodeFunctionData(
@@ -753,7 +753,7 @@ describe(CollectionConfig.contractName, async function () {
     };
 
     // ✅ Fetch correct nonce
-    const nonce = await contract.nonces(await platform.getAddress());
+    const nonce = await contract.noncesTx(await platform.getAddress());
 
     // ✅ Encode function call correctly
     const functionCall = contract.interface.encodeFunctionData(

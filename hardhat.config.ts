@@ -48,7 +48,7 @@ task(
       taskArgs.newName
     );
     replaceInFile(
-      __dirname + "/lib/NftContractProvider.ts",
+      __dirname + "/lib/DataSharingContractProvider.ts",
       CollectionConfig.contractName,
       taskArgs.newName
     );
@@ -75,7 +75,7 @@ task(
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.20",
+    version: "0.8.28",
     settings: {
       optimizer: {
         enabled: true,

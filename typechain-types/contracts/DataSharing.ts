@@ -38,7 +38,7 @@ export interface DataSharingInterface extends Interface {
       | "getCreditor"
       | "getDebtor"
       | "getDebtorDataActiveCreditors"
-      | "nonces"
+      | "noncesTx"
       | "owner"
       | "processAction"
       | "purchasePackage"
@@ -54,7 +54,6 @@ export interface DataSharingInterface extends Interface {
       | "CreditorAddedWithMetadata"
       | "DebtorAddedWithMetadata"
       | "DelegationMetadata"
-      | "EIP712DomainChanged"
       | "MetaTransactionExecuted"
       | "OwnershipTransferred"
       | "PackagePurchased"
@@ -119,7 +118,10 @@ export interface DataSharingInterface extends Interface {
     functionFragment: "getDebtorDataActiveCreditors",
     values: [BytesLike]
   ): string;
-  encodeFunctionData(functionFragment: "nonces", values: [AddressLike]): string;
+  encodeFunctionData(
+    functionFragment: "noncesTx",
+    values: [AddressLike]
+  ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "processAction",
@@ -201,7 +203,7 @@ export interface DataSharingInterface extends Interface {
     functionFragment: "getDebtorDataActiveCreditors",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "nonces", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "noncesTx", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "processAction",
@@ -335,22 +337,21 @@ export namespace DelegationMetadataEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace EIP712DomainChangedEvent {
-  export type InputTuple = [];
-  export type OutputTuple = [];
-  export interface OutputObject {}
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
 export namespace MetaTransactionExecutedEvent {
-  export type InputTuple = [user: AddressLike, functionCall: BytesLike];
-  export type OutputTuple = [user: string, functionCall: string];
+  export type InputTuple = [
+    user: AddressLike,
+    functionCall: BytesLike,
+    signature: BytesLike
+  ];
+  export type OutputTuple = [
+    user: string,
+    functionCall: string,
+    signature: string
+  ];
   export interface OutputObject {
     user: string;
     functionCall: string;
+    signature: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -588,12 +589,17 @@ export interface DataSharing extends BaseContract {
     "view"
   >;
 
-  nonces: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
+  noncesTx: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
 
   owner: TypedContractMethod<[], [string], "view">;
 
   processAction: TypedContractMethod<
-    [nik: BytesLike, consumer: BytesLike, provider: BytesLike, metadta: string],
+    [
+      nik: BytesLike,
+      consumer: BytesLike,
+      provider: BytesLike,
+      metadata: string
+    ],
     [void],
     "nonpayable"
   >;
@@ -748,7 +754,7 @@ export interface DataSharing extends BaseContract {
     nameOrSignature: "getDebtorDataActiveCreditors"
   ): TypedContractMethod<[nik: BytesLike], [[string[], bigint[]]], "view">;
   getFunction(
-    nameOrSignature: "nonces"
+    nameOrSignature: "noncesTx"
   ): TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
   getFunction(
     nameOrSignature: "owner"
@@ -756,7 +762,12 @@ export interface DataSharing extends BaseContract {
   getFunction(
     nameOrSignature: "processAction"
   ): TypedContractMethod<
-    [nik: BytesLike, consumer: BytesLike, provider: BytesLike, metadta: string],
+    [
+      nik: BytesLike,
+      consumer: BytesLike,
+      provider: BytesLike,
+      metadata: string
+    ],
     [void],
     "nonpayable"
   >;
@@ -812,13 +823,6 @@ export interface DataSharing extends BaseContract {
     DelegationMetadataEvent.InputTuple,
     DelegationMetadataEvent.OutputTuple,
     DelegationMetadataEvent.OutputObject
-  >;
-  getEvent(
-    key: "EIP712DomainChanged"
-  ): TypedContractEvent<
-    EIP712DomainChangedEvent.InputTuple,
-    EIP712DomainChangedEvent.OutputTuple,
-    EIP712DomainChangedEvent.OutputObject
   >;
   getEvent(
     key: "MetaTransactionExecuted"
@@ -890,18 +894,7 @@ export interface DataSharing extends BaseContract {
       DelegationMetadataEvent.OutputObject
     >;
 
-    "EIP712DomainChanged()": TypedContractEvent<
-      EIP712DomainChangedEvent.InputTuple,
-      EIP712DomainChangedEvent.OutputTuple,
-      EIP712DomainChangedEvent.OutputObject
-    >;
-    EIP712DomainChanged: TypedContractEvent<
-      EIP712DomainChangedEvent.InputTuple,
-      EIP712DomainChangedEvent.OutputTuple,
-      EIP712DomainChangedEvent.OutputObject
-    >;
-
-    "MetaTransactionExecuted(address,bytes)": TypedContractEvent<
+    "MetaTransactionExecuted(address,bytes,bytes)": TypedContractEvent<
       MetaTransactionExecutedEvent.InputTuple,
       MetaTransactionExecutedEvent.OutputTuple,
       MetaTransactionExecutedEvent.OutputObject

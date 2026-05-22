@@ -3,6 +3,7 @@ import {
   DATA_SHARING_CONTRACT_PATH,
   getDeploymentArgs,
 } from "./deploymentConfig";
+import { getConfiguredContractAddress } from "./networkConfig";
 
 export interface VerifyStep {
   name: string;
@@ -22,19 +23,19 @@ export const VERIFY_STEPS: VerifyStep[] = [
 
 export function getContractAddress(
   configKey: string,
-  _chainId: number
+  chainId: number
 ): string | null {
   if (configKey !== "contractAddress") {
     throw new Error(`Unknown contract config key: ${configKey}`);
   }
 
-  return CollectionConfig.contractAddress;
+  return getConfiguredContractAddress(chainId);
 }
 
 export function getConstructorArgs(
   chainId: number,
   configKey: string = "contractAddress"
-): readonly [string, string, string] {
+): readonly unknown[] {
   if (configKey !== "contractAddress") {
     throw new Error(`Unknown contract config key: ${configKey}`);
   }

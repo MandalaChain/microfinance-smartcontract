@@ -1,10 +1,16 @@
 import CollectionConfig from "../../config/CollectionConfig";
+import {
+  getConfiguredContractAddress as resolveConfiguredContractAddress,
+  getContractConfigKey as resolveContractConfigKey,
+} from "../../lib/CollectionConfigResolver";
+import { ContractAddressConfigKey } from "../../lib/CollectionConfigInterface";
 
 export interface NetworkConfig {
   chainId: number;
   name: string;
   shouldVerify: boolean;
   explorerBaseUrl?: string;
+  configAddressKey: ContractAddressConfigKey;
 }
 
 const NETWORK_CONFIG: Record<number, NetworkConfig> = {
@@ -12,23 +18,27 @@ const NETWORK_CONFIG: Record<number, NetworkConfig> = {
     chainId: 1337,
     name: "localhost",
     shouldVerify: false,
+    configAddressKey: "local_address",
   },
   31337: {
     chainId: 31337,
     name: "hardhat",
     shouldVerify: false,
+    configAddressKey: "local_address",
   },
   20011: {
     chainId: 20011,
     name: "mandalaTestnet",
     shouldVerify: true,
     explorerBaseUrl: "https://explorer.testnet.mandalachain.io",
+    configAddressKey: "mandalaTestnet_address",
   },
   20010: {
     chainId: 20010,
     name: "mandalaMainnet",
     shouldVerify: true,
     explorerBaseUrl: "https://explorer.mandalachain.io",
+    configAddressKey: "mandalaMainnet_address",
   },
 };
 
@@ -37,13 +47,15 @@ export function getNetworkConfig(chainId: number): NetworkConfig | null {
 }
 
 export function isLocalNetwork(chainId: number): boolean {
-  return chainId === 1337 || chainId === 31337;
+  return chainId === CollectionConfig.local.chainId || chainId === 31337;
 }
 
-export function getPlatformAddress(chainId: number): string {
-  return isLocalNetwork(chainId)
-    ? CollectionConfig.platformAddressForLocalHost
-    : CollectionConfig.platformAddress;
+export function getContractConfigKey(chainId: number): ContractAddressConfigKey {
+  return resolveContractConfigKey(chainId);
+}
+
+export function getConfiguredContractAddress(chainId: number): string | null {
+  return resolveConfiguredContractAddress(chainId);
 }
 
 export function shouldVerifyContracts(chainId: number): boolean {

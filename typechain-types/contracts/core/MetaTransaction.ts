@@ -23,34 +23,16 @@ import type {
 } from "../../common";
 
 export interface MetaTransactionInterface extends Interface {
-  getFunction(
-    nameOrSignature:
-      | "eip712Domain"
-      | "nonces"
-      | "owner"
-      | "renounceOwnership"
-      | "transferOwnership"
-  ): FunctionFragment;
+  getFunction(nameOrSignature: "eip712Domain" | "noncesTx"): FunctionFragment;
 
-  getEvent(
-    nameOrSignatureOrTopic:
-      | "EIP712DomainChanged"
-      | "MetaTransactionExecuted"
-      | "OwnershipTransferred"
-  ): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "MetaTransactionExecuted"): EventFragment;
 
   encodeFunctionData(
     functionFragment: "eip712Domain",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "nonces", values: [AddressLike]): string;
-  encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "renounceOwnership",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "transferOwnership",
+    functionFragment: "noncesTx",
     values: [AddressLike]
   ): string;
 
@@ -58,47 +40,24 @@ export interface MetaTransactionInterface extends Interface {
     functionFragment: "eip712Domain",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "nonces", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "renounceOwnership",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "transferOwnership",
-    data: BytesLike
-  ): Result;
-}
-
-export namespace EIP712DomainChangedEvent {
-  export type InputTuple = [];
-  export type OutputTuple = [];
-  export interface OutputObject {}
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
+  decodeFunctionResult(functionFragment: "noncesTx", data: BytesLike): Result;
 }
 
 export namespace MetaTransactionExecutedEvent {
-  export type InputTuple = [user: AddressLike, functionCall: BytesLike];
-  export type OutputTuple = [user: string, functionCall: string];
+  export type InputTuple = [
+    user: AddressLike,
+    functionCall: BytesLike,
+    signature: BytesLike
+  ];
+  export type OutputTuple = [
+    user: string,
+    functionCall: string,
+    signature: string
+  ];
   export interface OutputObject {
     user: string;
     functionCall: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace OwnershipTransferredEvent {
-  export type InputTuple = [previousOwner: AddressLike, newOwner: AddressLike];
-  export type OutputTuple = [previousOwner: string, newOwner: string];
-  export interface OutputObject {
-    previousOwner: string;
-    newOwner: string;
+    signature: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -165,17 +124,7 @@ export interface MetaTransaction extends BaseContract {
     "view"
   >;
 
-  nonces: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
-
-  owner: TypedContractMethod<[], [string], "view">;
-
-  renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
-
-  transferOwnership: TypedContractMethod<
-    [newOwner: AddressLike],
-    [void],
-    "nonpayable"
-  >;
+  noncesTx: TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -199,25 +148,9 @@ export interface MetaTransaction extends BaseContract {
     "view"
   >;
   getFunction(
-    nameOrSignature: "nonces"
+    nameOrSignature: "noncesTx"
   ): TypedContractMethod<[arg0: AddressLike], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "owner"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "renounceOwnership"
-  ): TypedContractMethod<[], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "transferOwnership"
-  ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
 
-  getEvent(
-    key: "EIP712DomainChanged"
-  ): TypedContractEvent<
-    EIP712DomainChangedEvent.InputTuple,
-    EIP712DomainChangedEvent.OutputTuple,
-    EIP712DomainChangedEvent.OutputObject
-  >;
   getEvent(
     key: "MetaTransactionExecuted"
   ): TypedContractEvent<
@@ -225,27 +158,9 @@ export interface MetaTransaction extends BaseContract {
     MetaTransactionExecutedEvent.OutputTuple,
     MetaTransactionExecutedEvent.OutputObject
   >;
-  getEvent(
-    key: "OwnershipTransferred"
-  ): TypedContractEvent<
-    OwnershipTransferredEvent.InputTuple,
-    OwnershipTransferredEvent.OutputTuple,
-    OwnershipTransferredEvent.OutputObject
-  >;
 
   filters: {
-    "EIP712DomainChanged()": TypedContractEvent<
-      EIP712DomainChangedEvent.InputTuple,
-      EIP712DomainChangedEvent.OutputTuple,
-      EIP712DomainChangedEvent.OutputObject
-    >;
-    EIP712DomainChanged: TypedContractEvent<
-      EIP712DomainChangedEvent.InputTuple,
-      EIP712DomainChangedEvent.OutputTuple,
-      EIP712DomainChangedEvent.OutputObject
-    >;
-
-    "MetaTransactionExecuted(address,bytes)": TypedContractEvent<
+    "MetaTransactionExecuted(address,bytes,bytes)": TypedContractEvent<
       MetaTransactionExecutedEvent.InputTuple,
       MetaTransactionExecutedEvent.OutputTuple,
       MetaTransactionExecutedEvent.OutputObject
@@ -254,17 +169,6 @@ export interface MetaTransaction extends BaseContract {
       MetaTransactionExecutedEvent.InputTuple,
       MetaTransactionExecutedEvent.OutputTuple,
       MetaTransactionExecutedEvent.OutputObject
-    >;
-
-    "OwnershipTransferred(address,address)": TypedContractEvent<
-      OwnershipTransferredEvent.InputTuple,
-      OwnershipTransferredEvent.OutputTuple,
-      OwnershipTransferredEvent.OutputObject
-    >;
-    OwnershipTransferred: TypedContractEvent<
-      OwnershipTransferredEvent.InputTuple,
-      OwnershipTransferredEvent.OutputTuple,
-      OwnershipTransferredEvent.OutputObject
     >;
   };
 }

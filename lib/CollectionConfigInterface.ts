@@ -1,15 +1,16 @@
 import NetworkConfigInterface from "./NetworkConfigInterface";
-//import MarketplaceConfigInterface from "./MarketplaceConfigInterface";
+
+export type ContractAddressConfigKey =
+  | "local_address"
+  | "mandalaMainnet_address"
+  | "mandalaTestnet_address";
 
 export default interface CollectionConfigInterface {
-    testnet: NetworkConfigInterface;
-    mainnet: NetworkConfigInterface;
-    contractName: string;
-    platformAddress: string;
-    platformAddressForLocalHost: string;
-    domainEip712: string;
-    versionDomain: string;
-    contractAddress: string|null;
-    //marketplaceIdentifier: string;
-    //marketplaceConfig: MarketplaceConfigInterface;
-};
+  local: NetworkConfigInterface;
+  testnet: NetworkConfigInterface;
+  mainnet: NetworkConfigInterface;
+  contractName: string;
+  local_address: string | null;
+  mandalaMainnet_address: string | null;
+  mandalaTestnet_address: string | null;
+}

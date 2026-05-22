@@ -4,6 +4,7 @@ import { ContractDeployer } from "./ContractDeployer";
 import { DeploymentState } from "./DeploymentState";
 import { PermissionManager } from "./PermissionManager";
 import { DeploymentContext, DeploymentStep } from "./deploymentConfig";
+import { getContractConfigKey } from "./networkConfig";
 
 export interface DeploymentOptions {
   skipVerification?: boolean;
@@ -160,8 +161,9 @@ export class DeploymentOrchestrator {
     console.log("\n" + "=".repeat(60));
     console.log("📝 Updating CollectionConfig.ts");
     console.log("=".repeat(60) + "\n");
+    const configKey = getContractConfigKey(this.chainId);
     console.log(
-      `CollectionConfig.contractAddress already points to the latest deployed value: ${deployedAddress}`
+      `CollectionConfig.${configKey} already points to the latest deployed value: ${deployedAddress}`
     );
   }
 

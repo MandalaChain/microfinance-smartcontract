@@ -1,5 +1,4 @@
 import CollectionConfig from "../../config/CollectionConfig";
-import { getPlatformAddress } from "./networkConfig";
 
 export interface DeploymentContext {
   chainId: number;
@@ -11,20 +10,14 @@ export interface DeploymentStep {
   contractName: string;
   configKey: string;
   contractPath: string;
-  getArgs: (context: DeploymentContext) => readonly [string, string, string];
+  getArgs: (context: DeploymentContext) => readonly unknown[];
   customDescription?: string;
 }
 
 export const DATA_SHARING_CONTRACT_PATH = `contracts/${CollectionConfig.contractName}.sol:${CollectionConfig.contractName}`;
 
-export function getDeploymentArgs(
-  chainId: number
-): readonly [string, string, string] {
-  return [
-    getPlatformAddress(chainId),
-    CollectionConfig.domainEip712,
-    CollectionConfig.versionDomain,
-  ] as const;
+export function getDeploymentArgs(_chainId: number): readonly [] {
+  return [] as const;
 }
 
 export const DEPLOYMENT_STEPS: DeploymentStep[] = [

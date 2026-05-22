@@ -1,39 +1,63 @@
-/*
+/**
  * SPDX-License-Identifier: MIT
  *
  * @title MetaTransaction
- * @dev This contract provides a base implementation for meta-transactions.
- *      It includes a mapping for nonces and a function to verify and execute meta-transactions.
+ * @author Baliola Team
+ * @notice Abstract base that provides gasless meta-transaction execution via
+ *         EIP-712 typed-data signatures.
+ * @dev Any contract inheriting `MetaTransaction` can accept off-chain signed
+ *      function calls and execute them on behalf of users.
+ *
+ *      Flow:
+ *      1. User signs an EIP-712 `MetaTransaction(address from, uint256 nonce,
+ *         bytes functionCall)` off-chain.
+ *      2. Relayer calls `executeMetaTransaction` with the signed payload.
+ *      3. The contract verifies the signature, increments the nonce, then
+ *         `self.call`s the encoded function with the original signer
+ *         appended to calldata.
+ *      4. `_msgSender()` detects the `self.call` context and extracts the
+ *         real sender from the last 20 bytes of `msg.data`.
+ *
+ *      Security considerations:
+ *      - Per-address monotonic nonce prevents replay.
+ *      - Nonce is incremented **before** execution (checks-effects-interactions).
+ *      - `_verify` is `private` to prevent external bypass.
+ *
+ *      Failure handling:
+ *      - Inner call revert data is bubbled unchanged so custom errors and
+ *        panic selectors remain visible to users, relayers, and monitors.
  *
  * @custom:error InvalidNonce - Thrown when the nonce is invalid.
  * @custom:error InvalidSignature - Thrown when the signature is invalid.
  * @custom:error MetaTransactionFailed - Thrown when the meta-transaction execution fails.
  */
 
-pragma solidity ^0.8.20;
+pragma solidity 0.8.28;
 
-import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {EIP712} from "solady/src/utils/EIP712.sol";
+import {ECDSA} from "solady/src/utils/ECDSA.sol";
 
-abstract contract MetaTransaction is EIP712, Ownable {
-    // ------------------------------------------------------------------------
-    //                              Custom Errors
-    // ------------------------------------------------------------------------
-    error InvalidNonce();
-    error InvalidSignature();
-    error MetaTransactionFailed(string data);
+import {ISharedErrors} from "../libraries/ISharedError.sol";
+
+abstract contract MetaTransaction is EIP712 {
+    // ------------------------------------------------------------------
+    //  State
+    // ------------------------------------------------------------------
+
+    /// @notice Per-address monotonic nonce used to prevent replay attacks.
+    /// @dev Public by design so wallets and relayers can construct EIP-712
+    ///      payloads; nonce values are not treated as secrets.
+    mapping(address => uint256) public noncesTx;
+
+    // ------------------------------------------------------------------
+    //  Structures
+    // ------------------------------------------------------------------
 
     /**
-     * @dev Maps creditor codes to their Ethereum addresses.
-     */
-    mapping(address => uint256) public nonces;
-
-    // ------------------------------------------------------------------------
-    //                              Structures
-    // ------------------------------------------------------------------------
-    /**
-     * @dev A struct to represent a meta transaction, including the sender, nonce, and function call.
+     * @dev Represents a meta-transaction payload.
+     * @param from         Original transaction sender.
+     * @param nonce        Sender's current nonce.
+     * @param functionCall ABI-encoded function call to execute on `this`.
      */
     struct Transaction {
         address from;
@@ -41,32 +65,80 @@ abstract contract MetaTransaction is EIP712, Ownable {
         bytes functionCall;
     }
 
-    // ------------------------------------------------------------------------
-    //                                Events
-    // ------------------------------------------------------------------------
-    /**
-     * @notice Emitted when a new platform address is change or set.
-     * @param user          Wallet user execute transaction.
-     * @param functionCall  The function call to be executed.
-     */
-    event MetaTransactionExecuted(address user, bytes functionCall);
+    // ------------------------------------------------------------------
+    //  Events
+    // ------------------------------------------------------------------
 
-    // ------------------------------------------------------------------------
-    //                               Functions
-    // ------------------------------------------------------------------------
     /**
-     * @dev This function is used to verify the signature of a meta transaction.
-     * @param _from         The sender of the meta transaction.
-     * @param _nonce        The nonce associated with the meta transaction.
-     * @param _functionCall The function call associated with the meta transaction.
-     * @param _signature    The signature of the meta transaction.
-     *
-     * @return True if the signature is valid, false otherwise.
-     *
-     * @notice This function uses the `verify` function from the `EIP712` library to verify the signature.
-     *         It is a public function that can be called by any address and returns a boolean value.
-     *         It takes in four parameters: the sender, nonce, function call, and signature.
-     *         It returns true if the signature is valid, and false otherwise.
+     * @notice Emitted after a meta-transaction is successfully executed.
+     * @param user          The original signer / sender.
+     * @param functionCall  The ABI-encoded function call that was executed.
+     * @param signature     The EIP-712 signature that authorised execution.
+     */
+    event MetaTransactionExecuted(
+        address indexed user,
+        bytes functionCall,
+        bytes signature
+    );
+
+    // ------------------------------------------------------------------
+    //  External Functions
+    // ------------------------------------------------------------------
+
+    /**
+     * @notice Verifies an EIP-712 signature and executes the encoded function
+     *         call on behalf of `_from`.
+     * @param _from         The original signer.
+     * @param _nonce        Must equal `noncesTx[_from]`.
+     * @param _functionCall ABI-encoded function call to execute.
+     * @param _signature    EIP-712 signature produced by `_from`.
+     */
+    function _executeMetaTransaction(
+        address _from,
+        uint256 _nonce,
+        bytes calldata _functionCall,
+        bytes calldata _signature
+    ) internal {
+        // Fetch once to reduce storage cost
+        uint256 currentNonce = noncesTx[_from];
+
+        if (_nonce != currentNonce) {
+            revert ISharedErrors.InvalidNonce();
+        }
+
+        if (!_verify(_from, _nonce, _functionCall, _signature)) {
+            revert ISharedErrors.InvalidSignature();
+        }
+
+        // Increment nonce before execution to prevent replays
+        noncesTx[_from] = currentNonce + 1;
+
+        // Emit before external interaction; event is rolled back automatically if call fails.
+        emit MetaTransactionExecuted(_from, _functionCall, _signature);
+
+        // Execute the function call & handle errors efficiently
+        (bool success, bytes memory returnData) = address(this).call(
+            // Always append the verified signer as the trusted sender suffix.
+            abi.encodePacked(_functionCall, _from)
+        );
+
+        if (!success) {
+            _bubbleRevert(returnData);
+        }
+
+    }
+
+    // ------------------------------------------------------------------
+    //  Internal / Private Functions
+    // ------------------------------------------------------------------
+
+    /**
+     * @dev Verifies the EIP-712 typed-data signature for a meta-transaction.
+     * @param _from         Expected signer.
+     * @param _nonce        Nonce value included in the signed struct.
+     * @param _functionCall ABI-encoded function call.
+     * @param _signature    ECDSA signature bytes.
+     * @return `true` if recovered address matches `_from`.
      */
     function _verify(
         address _from,
@@ -74,7 +146,7 @@ abstract contract MetaTransaction is EIP712, Ownable {
         bytes calldata _functionCall,
         bytes calldata _signature
     ) private view returns (bool) {
-        bytes32 digest = _hashTypedDataV4(
+        bytes32 digest = _hashTypedData(
             keccak256(
                 abi.encode(
                     keccak256(
@@ -92,84 +164,44 @@ abstract contract MetaTransaction is EIP712, Ownable {
     }
 
     /**
-     * @dev This function is used to execute a meta transaction.
-     * @param _from         The sender of the meta transaction.
-     * @param _nonce        The nonce associated with the meta transaction.
-     * @param _functionCall The function call associated with the meta transaction.
-     * @param _signature    The signature of the meta transaction.
-     *
-     * @notice This function uses the `verify` function from the `EIP712` library to verify the signature.
-     *         It is a public function that can be called by any address.
-     *         It takes in four parameters: the sender, nonce, function call, and signature.
-     *         It emits a `MetaTransactionExecuted` event.
+     * @dev Reverts with the exact bytes returned by a failed inner call.
+     *      This preserves `Error(string)`, `Panic(uint256)`, and custom errors.
+     * @param returnData Raw bytes returned by the failed `call`.
      */
-    function _executeMetaTransaction(
-        address _from,
-        uint256 _nonce,
-        bytes calldata _functionCall,
-        bytes calldata _signature
-    ) internal {
-        // Fetch once to reduce storage cost
-        uint256 currentNonce = nonces[_from];
-
-        if (_nonce != currentNonce) {
-            revert InvalidNonce();
-        }
-
-        if (!_verify(_from, _nonce, _functionCall, _signature)) {
-            revert InvalidSignature();
-        }
-
-        // Increment nonce before execution to prevent replays
-        nonces[_from] = currentNonce + 1;
-
-        // Execute the function call & handle errors efficiently
-        (bool success, bytes memory returnData) = address(this).call(
-            abi.encodePacked(_functionCall, _from) // Append `_from`
-        );
-
-        if (!success) {
-            // ✅ Decode revert reason only if call fails (saves gas in successful cases)
-            string memory errorMessage = _extractRevertMsg(returnData);
-            revert MetaTransactionFailed(errorMessage);
-        }
-
-        emit MetaTransactionExecuted(_from, _functionCall);
-    }
-
-    // Optimized function to extract revert reason
-    function _extractRevertMsg(
-        bytes memory _returnData
-    ) private pure returns (string memory) {
-        if (_returnData.length < 68) return "Transaction reverted";
-
-        assembly {
-            _returnData := add(_returnData, 0x04) // Skip first 4 bytes (selector)
-        }
-
-        return abi.decode(_returnData, (string));
-    }
-
-    // ------------------------------------------------------------------------
-    //                             Overriding Functions
-    // ------------------------------------------------------------------------
-    /**
-     * @dev This function is used to get the sender of the meta transaction.
-     * @return The sender of the meta transaction.
-     *
-     * @notice This function is a public function that can be called by any address.
-     *         It returns the sender of the meta transaction.
-     */
-    function _msgSender() internal view override returns (address) {
-        if (msg.sender == address(this)) {
-            bytes memory array = msg.data;
-            uint256 index = msg.data.length;
-            address userAddress;
+    function _bubbleRevert(bytes memory returnData) private pure {
+        if (returnData.length > 0) {
+            // solhint-disable-next-line no-inline-assembly
             assembly {
-                userAddress := and(
-                    mload(add(array, index)),
-                    0xffffffffffffffffffffffffffffffffffffffff
-                )
+                revert(add(returnData, 0x20), mload(returnData))
+            }
+        }
+
+        revert ISharedErrors.MetaTransactionFailed("Call failed");
+    }
+
+    // ------------------------------------------------------------------
+    //  Overriding Functions
+    // ------------------------------------------------------------------
+
+    /**
+     * @dev Returns the real transaction sender.
+     *      When called via `executeMetaTransaction` (`msg.sender == address(this)`),
+     *      the original signer address is appended to calldata by the
+     *      `call(_functionCall)` relay.  This function extracts it from the
+     *      last 20 bytes.
+     *      In all other contexts, returns `msg.sender` directly.
+     * @return The resolved sender address.
+     */
+    function _msgSender() internal view virtual returns (address) {
+        if (msg.sender == address(this)) {
+            // Ensure calldata is long enough
+            require(msg.data.length >= 20, "Invalid calldata");
+
+            address userAddress;
+            // solhint-disable-next-line no-inline-assembly
+            assembly {
+                // Safe extraction from msg.data
+                userAddress := shr(96, calldataload(sub(calldatasize(), 20)))
             }
             return userAddress;
         } else {

@@ -106,17 +106,15 @@ const config: HardhatUserConfig = {
     mandalaMainnet: {
       url: "https://rpc1-mainnet.mandalachain.io",
       chainId: 20010,
-      accounts: process.env.NETWORK_TESTNET_PRIVATE_KEY
-        ? [process.env.NETWORK_TESTNET_PRIVATE_KEY]
+      accounts: process.env.NETWORK_MAINNET_PRIVATE_KEY
+        ? [process.env.NETWORK_MAINNET_PRIVATE_KEY]
         : [],
     },
   },
   gasReporter: {
-    // enabled: process.env.REPORT_GAS ? true : false,
-    enabled: true,
+    enabled: process.env.REPORT_GAS === "1" || process.env.REPORT_GAS === "true",
     currency: "USD",
     coinmarketcap: process.env.GAS_REPORTER_COIN_MARKET_CAP_API_KEY,
-    // outputFile : 'gass-report.txt',
   },
   etherscan: {
     apiKey: {

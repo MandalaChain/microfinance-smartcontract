@@ -38,7 +38,7 @@ This repository showcases aims to foster adoption and enhance microfinance solut
 │ └─ ... 
 ├─ scripts/ 
 │ ├─ 1_deploy.ts 
-│ ├─ 2_deploy_localhost.ts 
+│ ├─ 1_verify.ts 
 ├─ test/ 
 │ ├─ index.ts
 ├─ package.json 
@@ -101,7 +101,7 @@ This repository showcases aims to foster adoption and enhance microfinance solut
 
 ## Prerequisites
 
-1. **Node.js (>= 16)** and **npm** or **Yarn**  
+1. **Node.js (>= 18)** and **pnpm**  
 2. **Hardhat** globally or run locally with `npx`.
 3. A valid environment for test or deployment (e.g., local Hardhat node, Ganache, or public test network like Goerli/Polygon Mumbai).
 
@@ -116,44 +116,49 @@ git clone https://github.com/baliola/microfinance-smartcontract.git
 cd microfinance-smartcontract
 
 # Install dependencies
-yarn install
+pnpm install
 ```
 ---
 ## Scripts and Commands
-Below is a list of useful scripts defined in `package.json`. Use either npm run `<command>` or `yarn <command>`.
+Below is a list of useful scripts defined in `package.json`. Use `pnpm run <command>`.
 
 ### Compile Contracts
 Forces a clean compilation of the Solidity contracts:
 ```bash
-yarn compile
+pnpm run compile
 ```
 
 ### Run Tests
 Executes the test suite:
 ```bash
-yarn test
+pnpm run test
 ```
 
 ### Local Node
 Spins up a local Hardhat development blockchain:
 ```bash
-yarn local-node
+pnpm run local-node
 ```
 
 ### Deploy Scripts
 Deploy contracts to your local node or a specified network:
 ```bash
-# or
-yarn deploy --netowrk <your-network>
+pnpm run deploy:contract
 
 # Deploy to a local Hardhat node
-yarn deploy-localhost
+pnpm run deploy:localhost
+
+# Deploy to a configured remote network
+pnpm run deploy:contract -- --network <your-network>
 ```
 
 ### Verification
 If you're deploying to a public network (e.g., Etherscan-supported networks), you can verify the contracts:
 ```bash
-yarn verify <your-contract-address> --netowrk <your-network>
+pnpm run verify -- --network <your-network>
+
+# Override the address if needed
+VERIFY_ADDRESS=0xYourContractAddress pnpm run verify -- --network <your-network>
 ```
 
 ---
@@ -180,43 +185,38 @@ networks: {
       url: "http://127.0.0.1:8545",
       chainId: 1337,
     },
-    truffle: {
-      url: 'http://localhost:24012/rpc',
-      timeout: 60000,
-      gasMultiplier: DEFAULT_GAS_MULTIPLIER,
-    },
-    niskala: {
-      url: 'https://mlg1.mandalachain.io',
-      chainId: 6025,
+    mandalaTestnet: {
+      url: 'https://rpc1-testnet.mandalachain.io',
+      chainId: 20011,
       accounts: process.env.NETWORK_TESTNET_PRIVATE_KEY ? [process.env.NETWORK_TESTNET_PRIVATE_KEY] : [],
     },
-    devnet: {
-      url: 'https://nbs.mandalachain.io',
-      chainId: 895670,
-      accounts: process.env.NETWORK_TESTNET_PRIVATE_KEY ? [process.env.NETWORK_TESTNET_PRIVATE_KEY] : [],
+    mandalaMainnet: {
+      url: 'https://rpc1-mainnet.mandalachain.io',
+      chainId: 20010,
+      accounts: process.env.NETWORK_MAINNET_PRIVATE_KEY ? [process.env.NETWORK_MAINNET_PRIVATE_KEY] : [],
     },
   },
 ```
 
 ### Contract Deployment
 1. Local Deployment:
-    - Run `yarn local-node` in one terminal to start a local Hardhat node.
-    - In a new terminal, run `yarn deploy-localhost` to deploy the contracts.
+    - Run `pnpm run local-node` in one terminal to start a local Hardhat node.
+    - In a new terminal, run `pnpm run deploy:localhost` to deploy the contracts.
 2. Public Testnet/Mainnet:
     - Configure your `.env` with the correct keys and network details.
     - Update network settings in `hardhat.config.ts`.
-    - Run npm run deploy with the `--network <networkName>` option, for example:
+    - Run the deploy script with the `--network <networkName>` option, for example:
       ```bash
-      yarn deploy --netowrk <your-network>
+      pnpm run deploy:contract -- --network <your-network>
       ```
 
 ### Interacting with the Contracts
 - Hardhat console:
   ```bash
-  npx hardhat console --network localhost
+  pnpm exec hardhat console --network localhost
   ```
 - Scripts:
-Additional setup scripts (e.g., `scripts/1_deploy.ts`) demonstrate common tasks like deploying contract.
+Additional setup scripts such as `scripts/1_deploy.ts` and `scripts/1_verify.ts` demonstrate the deploy and verification flow for the `DataSharing` contract.
 
 --- 
 
@@ -228,6 +228,6 @@ All tests reside in the `test/` folder. Each contract has a corresponding test f
 - DataSharing: Purchasing packages, setting the platform address, event emissions.
 Running:
 ```bash
-yarn test
+pnpm run test
 ```
 Use `test-gas` or `test-extended` for different reporting modes.

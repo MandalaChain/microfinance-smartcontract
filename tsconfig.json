@@ -1,16 +1,19 @@
 {
   "compilerOptions": {
-    "target": "es2018",
+    "target": "es2020",
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
     "outDir": "dist",
     "declaration": true,
     "resolveJsonModule": true,
+    "skipLibCheck": true,
     "lib": [
-      "ES5", "ES6", "dom", "dom.iterable"
+      "ES2020",
+      "dom",
+      "dom.iterable"
     ]
   },
-  "include": ["./src", "./scripts", "./test", "./typechain"],
+  "include": ["./src", "./scripts", "./test", "./typechain-types"],
   "files": ["./hardhat.config.ts"]
 }

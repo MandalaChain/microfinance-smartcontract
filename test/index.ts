@@ -38,6 +38,27 @@ describe(CollectionConfig.contractName, async function () {
     return keccak256(toUtf8Bytes(identifier));
   }
 
+  async function expectEventFromTx(txPromise: Promise<any>, eventName: string) {
+    const tx = await txPromise;
+    const receipt = await tx.wait();
+    if (!receipt) {
+      throw new Error("Receipt not found");
+    }
+
+    for (const log of receipt.logs) {
+      try {
+        const parsed = contract.interface.parseLog(log);
+        if (parsed?.name === eventName) {
+          return parsed;
+        }
+      } catch {
+        // Ignore logs not emitted by this contract interface.
+      }
+    }
+
+    throw new Error(`Event ${eventName} not found`);
+  }
+
   before(async function () {
     [owner, platform, bankA, bankB, customer, other, bankC, bankD] =
       await ethers.getSigners();
@@ -45,13 +66,10 @@ describe(CollectionConfig.contractName, async function () {
     const Contract = await ethers.getContractFactory(
       CollectionConfig.contractName
     );
-    contract = (await Contract.deploy(
-      await platform.getAddress(),
-      "DataSharing",
-      "1"
-    )) as unknown as NftContractType;
+    contract = (await Contract.deploy()) as unknown as NftContractType;
 
     await contract.waitForDeployment();
+    await contract.connect(owner).setPlatform(await platform.getAddress());
   });
 
   // it("Contract deployment", async function () {
@@ -189,8 +207,8 @@ describe(CollectionConfig.contractName, async function () {
     // ✅ Define EIP-712 domain
     const verifyingContractAddress = await contract.getAddress();
     const domain = {
-      name: "DataSharing",
-      version: "1",
+      name: "Data-Sharing-MetaTransaction",
+      version: "1.0",
       chainId: network.chainId,
       verifyingContract: verifyingContractAddress,
     };
@@ -220,7 +238,7 @@ describe(CollectionConfig.contractName, async function () {
     };
 
     // ✅ Sign meta-transaction
-    const signature = await platform._signTypedData(
+    const signature = await platform.signTypedData(
       domain,
       {
         MetaTransaction: [
@@ -249,22 +267,16 @@ describe(CollectionConfig.contractName, async function () {
     expect(recoveredSigner).to.equal(await platform.getAddress());
 
     // ✅ Execute meta-transaction
-    const tx = await contract
-      .connect(platform)
-      .executeMetaTransaction(
-        message.from,
-        message.nonce,
-        message.functionCall,
-        signature
-      );
-    const receipt = await tx.wait();
-    if (!receipt) {
-      throw new Error("Transaction reverted");
-    }
-
-    // ✅ Check for event emission
-    const event = (receipt as any).events?.find(
-      (e: { event: string }) => e.event === "CreditorAddedWithMetadata"
+    const event = await expectEventFromTx(
+      contract
+        .connect(platform)
+        .executeMetaTransaction(
+          message.from,
+          message.nonce,
+          message.functionCall,
+          signature
+        ),
+      "CreditorAddedWithMetadata"
     );
 
     expect(event).to.not.be.undefined;
@@ -376,25 +388,20 @@ describe(CollectionConfig.contractName, async function () {
     const urlKTP = "http://url-ktp-test";
     const urlApproval = "http://url-approval-test";
 
-    const tx = await contract
-      .connect(platform)
-      .addDebtorToCreditor(
-        nikDebtor,
-        creditorCode,
-        name,
-        creditorName,
-        applicationDate,
-        approvalDate,
-        urlKTP,
-        urlApproval
-      );
-
-    const receipt = await tx.wait();
-    if (!receipt) {
-      throw new Error("Receipt not found");
-    }
-    const event = (receipt as any).events?.find(
-      (e: { event: string }) => e.event === "DebtorAddedWithMetadata"
+    const event = await expectEventFromTx(
+      contract
+        .connect(platform)
+        .addDebtorToCreditor(
+          nikDebtor,
+          creditorCode,
+          name,
+          creditorName,
+          applicationDate,
+          approvalDate,
+          urlKTP,
+          urlApproval
+        ),
+      "DebtorAddedWithMetadata"
     );
 
     expect(event).to.not.be.undefined;
@@ -431,7 +438,7 @@ describe(CollectionConfig.contractName, async function () {
     );
 
     expect(creditors).to.deep.equal([await bankA.getAddress()]);
-    expect(statuses).to.deep.equal([1]);
+    expect(statuses).to.deep.equal([1n]);
   });
 
   it("Success adding creditor B and retrieve event emit", async function () {
@@ -443,24 +450,19 @@ describe(CollectionConfig.contractName, async function () {
     const signerName = "Signer Name";
     const signerPosition = "Signer Position";
 
-    const tx = await contract
-      .connect(platform)
-      ["addCreditor(address,bytes32,string,string,string,string,string)"](
-        creditorAddress,
-        creditorCode,
-        institutionCode,
-        institutionName,
-        approvalDate,
-        signerName,
-        signerPosition
-      );
-
-    const receipt = await tx.wait();
-    if (!receipt) {
-      throw new Error("Receipt not found");
-    }
-    const event = (receipt as any).events?.find(
-      (e: { event: string }) => e.event === "CreditorAddedWithMetadata"
+    const event = await expectEventFromTx(
+      contract
+        .connect(platform)
+        ["addCreditor(address,bytes32,string,string,string,string,string)"](
+          creditorAddress,
+          creditorCode,
+          institutionCode,
+          institutionName,
+          approvalDate,
+          signerName,
+          signerPosition
+        ),
+      "CreditorAddedWithMetadata"
     );
     expect(event).to.not.be.undefined;
     expect(event.args.creditorCode).to.equal(creditorCode);
@@ -720,7 +722,7 @@ describe(CollectionConfig.contractName, async function () {
     );
 
     expect(creditors).to.deep.equal([await bankA.getAddress()]); // bank a and bank b
-    expect(statuses).to.deep.equal([1]); // approve and none
+    expect(statuses).to.deep.equal([1n]); // approve and none
   });
 
   // it("Should Error When provider approve delegate for data sharing from consumer but the wallet runner is not same as provider", async function () {
@@ -746,8 +748,8 @@ describe(CollectionConfig.contractName, async function () {
     // ✅ Define EIP-712 domain
     const verifyingContractAddress = await contract.getAddress();
     const domain = {
-      name: "DataSharing",
-      version: "1",
+      name: "Data-Sharing-MetaTransaction",
+      version: "1.0",
       chainId: network.chainId,
       verifyingContract: verifyingContractAddress,
     };
@@ -778,7 +780,7 @@ describe(CollectionConfig.contractName, async function () {
     };
 
     // ✅ Sign meta-transaction
-    const signature = await platform._signTypedData(
+    const signature = await platform.signTypedData(
       domain,
       {
         MetaTransaction: [
@@ -806,21 +808,16 @@ describe(CollectionConfig.contractName, async function () {
 
     expect(recoveredSigner).to.equal(await platform.getAddress());
 
-    // ✅ Execute meta-transaction
-    const tx = await contract
-      .connect(platform)
-      .executeMetaTransaction(
-        message.from,
-        message.nonce,
-        message.functionCall,
-        signature
-      );
-    const receipt = await tx.wait();
-    if (!receipt) {
-      throw new Error("Transaction failed");
-    }
-    const event = (receipt as any).events?.find(
-      (e: { event: string }) => e.event === "DelegationMetadata"
+    const event = await expectEventFromTx(
+      contract
+        .connect(platform)
+        .executeMetaTransaction(
+          message.from,
+          message.nonce,
+          message.functionCall,
+          signature
+        ),
+      "DelegationMetadata"
     );
     expect(event).to.not.be.undefined;
     expect(event.args.nik).to.equal(nikDebtor);

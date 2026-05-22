@@ -14,6 +14,14 @@
       "dom.iterable"
     ]
   },
-  "include": ["./src", "./scripts", "./test", "./typechain-types"],
+  "include": [
+    "./src",
+    "./config",
+    "./lib",
+    "./scripts",
+    "./test",
+    "./typechain-types/common.ts",
+    "./typechain-types/contracts"
+  ],
   "files": ["./hardhat.config.ts"]
 }

@@ -3,27 +3,24 @@
  *
  * @title DataSharing Contract
  * @dev This contract extends the `Delegation` contract to manage data sharing
- *      and delegation requests among creditors and debtors. It leverages
+ *      and delegation approvals among creditors and debtors. It leverages
  *      mapping-based storage for efficient lookups and includes metadata
  *      emission for tracking important actions.
  *
  * ## Features:
  * - Integrates with the `Delegation` system for creditor-debtor relationships.
  * - Supports adding and removing debtors/creditors with associated metadata.
- * - Includes event emission for purchase packages and delegation requests.
+ * - Includes event emission for purchase packages and delegation approvals.
  * - Allows only the platform address (and contract owner for platform updates) to perform
  *   certain registration and removal functions.
  *
  * @custom:error AddressNotEligible - Thrown when `msg.sender` is not the expected address (e.g., `_platform`).
  * @custom:error InvalidHash        - Thrown when a provided identifier is empty (bytes32(0)).
  * @custom:error NikNeedRegistered  - Thrown when the provided NIK is not registered.
- * @custom:error RequestNotFound    - Thrown when a delegation request is missing.
- * @custom:error RequestAlreadyExist - Thrown when attempting to create a request that already exists in PENDING status.
  * @custom:error ProviderNotEligible - Thrown when the provider is not in an APPROVED status for a debtor.
- * @custom:error InvalidStatusApproveRequest - Thrown when trying to approve/reject a non-pending request.
  */
 
-pragma solidity ^0.8.20;
+pragma solidity 0.8.28;
 
 import {Ownable, Context} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Delegation} from "./core/Delegation.sol";
@@ -72,6 +69,13 @@ contract DataSharing is Delegation, MetaTransaction, Ownable {
      * @param platform          The unique identifier (hashed) for the creditor.
      */
     event SetNewAddressPlatform(address indexed platform);
+
+    /**
+     * @notice Emitted when a debtor is registered through the plain addDebtor path.
+     * @param nik           The unique identifier (hashed) for the debtor.
+     * @param debtorAddress The Ethereum address assigned to the debtor.
+     */
+    event DebtorAdded(bytes32 indexed nik, address indexed debtorAddress);
 
     /**
      * @notice Emitted when a new creditor is added with supplemental metadata.
@@ -182,6 +186,7 @@ contract DataSharing is Delegation, MetaTransaction, Ownable {
         address debtorAddress
     ) external onlyPlatform {
         _addDebtor(nik, debtorAddress);
+        emit DebtorAdded(nik, debtorAddress);
     }
 
     /**
@@ -268,22 +273,7 @@ contract DataSharing is Delegation, MetaTransaction, Ownable {
     //                               Delegation
     // ------------------------------------------------------------------------
     /**
-     * @dev Requests a delegation from one creditor (consumer) to another (provider) for a debtor (NIK).
-     * @param nik      The unique identifier (hashed) of the debtor.
-     * @param consumer The code (hashed) of the creditor acting as consumer.
-     * @param provider The code (hashed) of the creditor acting as provider.
-     * @notice Reverts if the caller is not the consumer or if an identical request is already pending.
-     */
-    // function requestDelegation(
-    //     bytes32 nik,
-    //     bytes32 consumer,
-    //     bytes32 provider
-    // ) external onlyPlatform {
-    //     _requestDelegation(nik, consumer, provider);
-    // }
-
-    /**
-     * @dev Overloaded version that also emits additional metadata for the delegation request.
+     * @dev Approves a delegation and emits additional metadata for the relationship.
      * @param nik          The unique identifier (hashed) of the debtor.
      * @param consumer    The code (hashed) of the creditor acting as consumer.
      * @param provider    The code (hashed) of the creditor acting as provider.
@@ -301,8 +291,7 @@ contract DataSharing is Delegation, MetaTransaction, Ownable {
         string memory referenceId,
         string memory requestDate
     ) external onlyPlatform {
-        // _requestDelegation(nik, consumer, provider);
-        _delegate(nik, consumer, provider, Status.APPROVED);
+        _delegate(nik, consumer, provider);
         emit DelegationMetadata(
             nik,
             requestId,
@@ -315,18 +304,18 @@ contract DataSharing is Delegation, MetaTransaction, Ownable {
     }
 
     /**
-     * @dev Allows a provider to approve or reject a delegation request.
+     * @dev Approves a delegation relationship.
      * @param nik      The unique identifier (hashed) of the debtor.
      * @param consumer The code (hashed) of the creditor acting as consumer.
      * @param provider The code (hashed) of the creditor acting as provider.
-     * @notice Reverts if the caller is not the provider or if the request is not pending.
+     * @notice Reverts if the provider is not already approved for the debtor or the delegation already exists.
      */
     function delegate(
         bytes32 nik,
         bytes32 consumer,
         bytes32 provider
     ) external onlyPlatform {
-        _delegate(nik, consumer, provider, Status.APPROVED);
+        _delegate(nik, consumer, provider);
     }
 
     /**
@@ -404,19 +393,6 @@ contract DataSharing is Delegation, MetaTransaction, Ownable {
         return _getActiveCreditors(nik);
     }
 
-    /**
-     * @dev Retrieves the status of a specific creditor for a given debtor status (APPROVED, REJECTED, or PENDING).
-     * @param nik      The unique identifier (hashed) for the debtor.
-     * @param creditor The unique identifier (hashed) for the creditor.
-     * @return status  An status from request delegation.
-     */
-    // function getStatusRequest(
-    //     bytes32 nik,
-    //     bytes32 creditor
-    // ) external view returns (Status) {
-    //     return _getStatusRequest(nik, creditor);
-    // }
-
     // ------------------------------------------------------------------------
     //                              Purchases
     // ------------------------------------------------------------------------
@@ -440,7 +416,7 @@ contract DataSharing is Delegation, MetaTransaction, Ownable {
         string memory startDate,
         string memory endDate,
         uint256 quota
-    ) external {
+    ) external onlyPlatform {
         // Emit event without storing data on-chain
         emit PackagePurchased(
             institutionCode,

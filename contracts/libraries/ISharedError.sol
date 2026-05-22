@@ -9,5 +9,6 @@ pragma solidity 0.8.28;
 interface ISharedErrors {
     error InvalidNonce();
     error InvalidSignature();
+    error InvalidCalldata();
     error MetaTransactionFailed(string data);
 }

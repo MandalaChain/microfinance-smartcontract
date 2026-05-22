@@ -74,7 +74,9 @@ export class ContractDeployer {
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        const contract = (await contractFactory.deploy(...args)) as TContract;
+          const contract = (await contractFactory.deploy(
+            ...args
+          )) as unknown as TContract;
         const deploymentTx = contract.deploymentTransaction();
 
         if (!deploymentTx) {

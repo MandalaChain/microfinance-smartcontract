@@ -195,7 +195,9 @@ abstract contract MetaTransaction is EIP712 {
     function _msgSender() internal view virtual returns (address) {
         if (msg.sender == address(this)) {
             // Ensure calldata is long enough
-            require(msg.data.length >= 20, "Invalid calldata");
+            if (msg.data.length < 20) {
+                revert ISharedErrors.InvalidCalldata();
+            }
 
             address userAddress;
             // solhint-disable-next-line no-inline-assembly

@@ -1,5 +1,5 @@
 import { ethers, network } from "hardhat";
-import { DataSharing as ContractType } from "../typechain-types";
+import { DataSharing as ContractType } from "../typechain-types/contracts/DataSharing";
 import CollectionConfig from "../config/CollectionConfig";
 import {
   getConfiguredContractAddress,

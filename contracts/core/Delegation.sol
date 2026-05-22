@@ -2,24 +2,20 @@
  * SPDX-License-Identifier: MIT
  *
  * @title Delegation Contract
- * @dev This contract extends the `Registration` contract and manages delegation requests
- *      between creditors for a specific debtor. It provides internal functions to request,
- *      approve, and manage delegation relationships.
+ * @dev This contract extends the `Registration` contract and manages approval-based
+ *      delegation relationships between creditors for a specific debtor.
  *
  * ## Features:
- * - Creditor delegation requests for debtors.
- * - Approval and rejection workflow for delegation requests.
+ * - Creditor delegation approvals for debtors.
  * - Mapping-based storage for efficient lookups.
  *
  * @custom:error NikNeedRegistered      - Thrown when the provided NIK is not yet registered.
- * @custom:error RequestAlreadyExist    - Thrown when a similar pending request already exists.
+ * @custom:error DelegateAlreadyExist   - Thrown when a similar delegation already exists.
  * @custom:error ProviderNotEligible    - Thrown when the provider is not in an approved status.
- * @custom:error InvalidStatusApproveRequest - Thrown when attempting to approve/reject a non-pending request.
- * @custom:error AddressNotEligible     - Thrown when the caller does not match the required address (consumer or provider).
  * @custom:error InvalidHash            - Thrown when one of the provided identifiers (NIK/creditor code) is invalid (zero).
  */
 
-pragma solidity ^0.8.20;
+pragma solidity 0.8.28;
 
 import {Registration} from "./Registration.sol";
 
@@ -35,15 +31,13 @@ abstract contract Delegation is Registration {
     error NikNeedRegistered();
     error DelegateAlreadyExist();
     error ProviderNotEligible();
-    // error InvalidStatusApproveRequest();
-    // error AddressNotEligible();
 
     // ------------------------------------------------------------------------
     //                                 Enums
     // ------------------------------------------------------------------------
     /**
-     * @dev Status represents the state of a request or a creditor's relationship to a debtor.
-     *      - APPROVED: The request was approved (or the creditor was manually added).
+     * @dev Status represents a creditor's relationship to a debtor.
+     *      - APPROVED: The creditor was approved for the debtor.
      */
     enum Status {
         NONE,
@@ -54,12 +48,11 @@ abstract contract Delegation is Registration {
     //                              Structures
     // ------------------------------------------------------------------------
     /**
-     * @dev Request holds details about a delegation request from one creditor (consumer)
-     *      to another creditor (provider) for a specific debtor (identified by `nik`).
+     * @dev Request holds the delegation status from one creditor (consumer)
+     *      to another creditor (provider) for a specific debtor.
      */
     struct Request {
         Status status;
-        bytes32 nik;
     }
 
     /**
@@ -81,10 +74,10 @@ abstract contract Delegation is Registration {
     mapping(address => DebtorInfo) private _debtorInfo;
 
     /**
-     * @dev Stores delegation requests in a nested mapping:
-     *      _request[consumer][provider] => Request({ status, nik })
+     * @dev Stores delegation requests keyed by NIK, consumer, and provider.
      */
-    mapping(address => mapping(address => Request)) private _request;
+    mapping(bytes32 => mapping(address => mapping(address => Request)))
+        private _request;
 
     // ------------------------------------------------------------------------
     //                          Internal Functions
@@ -107,7 +100,7 @@ abstract contract Delegation is Registration {
     }
 
     /**
-     * @dev Common checks used in both `_requestDelegation` and `_delegate`.
+     * @dev Common checks used before approving a delegation.
      *      Ensures that NIK and creditor codes are valid, and that the provider is approved.
      * @param _nik          The unique identifier (hashed) for the debtor.
      * @param _codeConsumer The hashed code for the creditor acting as consumer.
@@ -148,34 +141,34 @@ abstract contract Delegation is Registration {
     }
 
     /**
-     * @dev Allows a creditor (provider) to approve or reject a pending delegation request.
+     * @dev Approves a delegation relationship for the consumer creditor.
      * @param _nik          The unique identifier (hashed) for the debtor.
      * @param _codeConsumer The hashed code representing the consumer creditor.
      * @param _codeProvider The hashed code representing the provider creditor.
-     * @param _status       The final status of the delegation (APPROVED or REJECTED).
-     * @notice Reverts with `InvalidStatusApproveRequest` if the request is not currently PENDING.
-     * @notice Reverts with `AddressNotEligible` if `_executor` is not the provider.
      */
     function _delegate(
         bytes32 _nik,
         bytes32 _codeConsumer,
-        bytes32 _codeProvider,
-        Status _status
+        bytes32 _codeProvider
     ) internal {
         (
             address _nikAddress,
             address _consumer,
             address _provider
         ) = _checkCompliance(_nik, _codeConsumer, _codeProvider);
+        DebtorInfo storage _info = _debtorInfo[_nikAddress];
 
-        if (_request[_consumer][_provider].status != Status.NONE) {
+        if (_request[_nik][_consumer][_provider].status != Status.NONE) {
             revert DelegateAlreadyExist();
+        }
+        if (_info.creditorStatus[_consumer] == Status.APPROVED) {
+            revert AlreadyExist();
         }
 
         // Update the request status
-        _request[_consumer][_provider].status = _status;
+        _request[_nik][_consumer][_provider].status = Status.APPROVED;
         // Reflect the new status in the debtor's records
-        _debtorInfo[_nikAddress].creditorStatus[_consumer] = _status;
+        _addApprovedCreditor(_info, _consumer);
     }
 
     /**
@@ -200,8 +193,7 @@ abstract contract Delegation is Registration {
             revert AlreadyExist();
 
         // Approve the creditor for this debtor and record it
-        _info.creditorStatus[_creditor] = Status.APPROVED;
-        _info.creditors.push(_creditor);
+        _addApprovedCreditor(_info, _creditor);
     }
 
     /**
@@ -224,27 +216,24 @@ abstract contract Delegation is Registration {
         ) revert InvalidHash();
 
         DebtorInfo storage _info;
-        address _nikAddress;
-        (_info, _nikAddress) = _getCustomerStoraget(_nik);
+        (_info, ) = _getCustomerStoraget(_nik);
 
         address _consumer = _isCreditor(_codeConsumer);
         address _provider = _isCreditor(_codeProvider);
 
-        // if (_info.creditorStatus[_provider] == Status.APPROVED)
-        //     revert AlreadyExist();
+        if (_info.creditorStatus[_provider] == Status.APPROVED) {
+            revert AlreadyExist();
+        }
+        if (_info.creditorStatus[_consumer] == Status.APPROVED) {
+            revert AlreadyExist();
+        }
 
-        // Approve the creditor for this debtor and record it
-        _info.creditorStatus[_provider] = Status.APPROVED;
-        _info.creditors.push(_provider);
-
-        // if (_request[_consumer][_provider].status != Status.NONE) {
-        //     revert DelegateAlreadyExist();
-        // }
+        // Approve both creditors for this debtor and record each once.
+        _addApprovedCreditor(_info, _provider);
+        _addApprovedCreditor(_info, _consumer);
 
         // Update the request status
-        _request[_consumer][_provider].status = Status.APPROVED;
-        // Reflect the new status in the debtor's records
-        _debtorInfo[_nikAddress].creditorStatus[_consumer] = Status.APPROVED;
+        _request[_nik][_consumer][_provider].status = Status.APPROVED;
     }
 
     /**
@@ -277,9 +266,9 @@ abstract contract Delegation is Registration {
     }
 
     /**
-     * @dev Retrieves all creditors for a debtor that match a specific status (APPROVED, REJECTED, or PENDING).
+     * @dev Retrieves all approved creditors for a debtor.
      * @param _nik    The unique identifier (hashed) for the debtor.
-     * @return _getCreditors An array of creditor addresses that match the provided `_status`.
+     * @return _getCreditors An array of approved creditor addresses.
      * @notice Reverts with `NikNeedRegistered` if the debtor is not registered.
      */
     function _getActiveCreditors(
@@ -310,5 +299,32 @@ abstract contract Delegation is Registration {
         }
 
         return _getCreditors;
+    }
+
+    /**
+     * @dev Records a creditor as approved for a debtor after callers have
+     *      verified it is not already present.
+     */
+    function _addApprovedCreditor(
+        DebtorInfo storage _info,
+        address _creditor
+    ) private {
+        _info.creditorStatus[_creditor] = Status.APPROVED;
+        _info.creditors.push(_creditor);
+    }
+
+    /**
+     * @dev Clears debtor-scoped creditor arrays and mapping values before the
+     *      debtor registry entry is removed.
+     */
+    function _beforeRemoveDebtor(
+        bytes32,
+        address _debtorAddress
+    ) internal virtual override {
+        DebtorInfo storage _info = _debtorInfo[_debtorAddress];
+        for (uint256 i = 0; i < _info.creditors.length; i++) {
+            delete _info.creditorStatus[_info.creditors[i]];
+        }
+        delete _info.creditors;
     }
 }

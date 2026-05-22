@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from "fs";
 import * as dotenv from "dotenv";
 import { HardhatUserConfig, task } from "hardhat/config";
 import "@nomicfoundation/hardhat-verify";
@@ -48,7 +48,7 @@ task(
       taskArgs.newName
     );
     replaceInFile(
-      __dirname + "/lib/NftContractProvider.ts",
+      __dirname + "/lib/DataSharingContractProvider.ts",
       CollectionConfig.contractName,
       taskArgs.newName
     );
@@ -75,7 +75,7 @@ task(
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: '0.8.20',
+    version: "0.8.28",
     settings: {
       optimizer: {
         enabled: true,
@@ -92,69 +92,51 @@ const config: HardhatUserConfig = {
       chainId: 1337,
     },
     truffle: {
-      url: 'http://localhost:24012/rpc',
+      url: "http://localhost:24012/rpc",
       timeout: 60000,
       gasMultiplier: DEFAULT_GAS_MULTIPLIER,
     },
-    niskala: {
-      url: 'https://mlg1.mandalachain.io',
-      chainId: 6025,
-      accounts: process.env.NETWORK_TESTNET_PRIVATE_KEY ? [process.env.NETWORK_TESTNET_PRIVATE_KEY] : [],
+    mandalaTestnet: {
+      url: "https://rpc1-testnet.mandalachain.io",
+      chainId: 20011,
+      accounts: process.env.NETWORK_TESTNET_PRIVATE_KEY
+        ? [process.env.NETWORK_TESTNET_PRIVATE_KEY]
+        : [],
     },
-    devnet: {
-      url: 'https://nbs.mandalachain.io',
-      chainId: 895670,
-      accounts: process.env.NETWORK_TESTNET_PRIVATE_KEY ? [process.env.NETWORK_TESTNET_PRIVATE_KEY] : [],
+    mandalaMainnet: {
+      url: "https://rpc1-mainnet.mandalachain.io",
+      chainId: 20010,
+      accounts: process.env.NETWORK_MAINNET_PRIVATE_KEY
+        ? [process.env.NETWORK_MAINNET_PRIVATE_KEY]
+        : [],
     },
   },
   gasReporter: {
-    // enabled: process.env.REPORT_GAS ? true : false,
-    enabled : true,
-    currency: 'USD',
+    enabled: process.env.REPORT_GAS === "1" || process.env.REPORT_GAS === "true",
+    currency: "USD",
     coinmarketcap: process.env.GAS_REPORTER_COIN_MARKET_CAP_API_KEY,
-    // outputFile : 'gass-report.txt',
   },
   etherscan: {
     apiKey: {
-      // Ethereum
-      goerli: process.env.BLOCK_EXPLORER_API_KEY!,
-      sepolia: process.env.BLOCK_EXPLORER_API_KEY!,
-      rinkeby: process.env.BLOCK_EXPLORER_API_KEY!,
-      mainnet: process.env.BLOCK_EXPLORER_API_KEY!,
-      // Polygon
-      polygon: process.env.BLOCK_EXPLORER_API_KEY!,
-      amoy: process.env.BLOCK_EXPLORER_API_KEY!,
-      // Arbitrum
-      arbitrumGoerli: process.env.BLOCK_EXPLORER_API_KEY!,
-      arbitrumOne: process.env.BLOCK_EXPLORER_API_KEY!,
-      // Niskala
-      niskala: process.env.BLOCK_EXPLORER_API_KEY! || "NO_API_KEY_NEEDED",
-      devnet: process.env.BLOCK_EXPLORER_API_KEY!,
+      mandalaTestnet: process.env.BLOCK_EXPLORER_API_KEY!,
+      mandalaMainnet: process.env.BLOCK_EXPLORER_API_KEY!,
     },
     customChains: [
       {
-        network: "amoy",
-        chainId: 80002,
+        network: "mandalaTestnet",
+        chainId: 20011,
         urls: {
-          apiURL: "https://api-amoy.polygonscan.com/api",
-          browserURL: "https://amoy.polygonscan.com/"
-        }
+          apiURL: "https://explorer.testnet.mandalachain.io/api",
+          browserURL: "https://explorer.testnet.mandalachain.io",
+        },
       },
       {
-        network: "niskala",
-        chainId: 6025,
+        network: "mandalaMainnet",
+        chainId: 20010,
         urls: {
-          apiURL: "https://niskala.mandalachain.io/api",
-          browserURL: "https://niskala.mandalachain.io"
-        }
-      },
-      {
-        network: "devnet",
-        chainId: 895670,
-        urls: {
-          apiURL: "https://nbs-explorer.mandalachain.io/api",
-          browserURL: "https://https://nbs-explorer.mandalachain.io"
-        }
+          apiURL: "https://explorer.mandalachain.io/api",
+          browserURL: "https://explorer.mandalachain.io",
+        },
       },
     ],
   },
@@ -181,11 +163,12 @@ if (process.env.NETWORK_MAINNET_URL !== undefined) {
 export default config;
 
 /**
- * Replaces all occurrences of a string in the given file. 
+ * Replaces all occurrences of a string in the given file.
  */
-function replaceInFile(file: string, search: string, replace: string): void
-{
-  const fileContent = fs.readFileSync(file, 'utf8').replace(new RegExp(search, 'g'), replace);
+function replaceInFile(file: string, search: string, replace: string): void {
+  const fileContent = fs
+    .readFileSync(file, "utf8")
+    .replace(new RegExp(search, "g"), replace);
 
-  fs.writeFileSync(file, fileContent, 'utf8');
+  fs.writeFileSync(file, fileContent, "utf8");
 }

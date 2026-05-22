@@ -3,31 +3,28 @@
  *
  * @title DataSharing Contract
  * @dev This contract extends the `Delegation` contract to manage data sharing
- *      and delegation requests among creditors and debtors. It leverages
+ *      and delegation approvals among creditors and debtors. It leverages
  *      mapping-based storage for efficient lookups and includes metadata
  *      emission for tracking important actions.
  *
  * ## Features:
  * - Integrates with the `Delegation` system for creditor-debtor relationships.
  * - Supports adding and removing debtors/creditors with associated metadata.
- * - Includes event emission for purchase packages and delegation requests.
+ * - Includes event emission for purchase packages and delegation approvals.
  * - Allows only the platform address (and contract owner for platform updates) to perform
  *   certain registration and removal functions.
  *
  * @custom:error AddressNotEligible - Thrown when `msg.sender` is not the expected address (e.g., `_platform`).
  * @custom:error InvalidHash        - Thrown when a provided identifier is empty (bytes32(0)).
  * @custom:error NikNeedRegistered  - Thrown when the provided NIK is not registered.
- * @custom:error RequestNotFound    - Thrown when a delegation request is missing.
- * @custom:error RequestAlreadyExist - Thrown when attempting to create a request that already exists in PENDING status.
  * @custom:error ProviderNotEligible - Thrown when the provider is not in an APPROVED status for a debtor.
- * @custom:error InvalidStatusApproveRequest - Thrown when trying to approve/reject a non-pending request.
  */
 
-pragma solidity ^0.8.20;
+pragma solidity 0.8.28;
 
+import {Ownable, Context} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Delegation} from "./core/Delegation.sol";
-import {MetaTransaction, EIP712, Ownable} from "./core/MetaTransaction.sol";
-import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
+import {MetaTransaction} from "./core/MetaTransaction.sol";
 
 /**
  * @title DataSharing
@@ -35,7 +32,7 @@ import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
  *         while emitting metadata-driven events for tracking and auditing.
  * @dev Inherits from `Delegation` (which itself extends `Registration`) and `Ownable`.
  */
-contract DataSharing is Delegation, MetaTransaction {
+contract DataSharing is Delegation, MetaTransaction, Ownable {
     error AddressNotEligible();
 
     // ------------------------------------------------------------------------
@@ -51,18 +48,8 @@ contract DataSharing is Delegation, MetaTransaction {
     //                         Constructor & Modifiers
     // ------------------------------------------------------------------------
 
-    /**
-     * @dev Sets the initial platform address and initializes `Ownable` with the contract deployer.
-     * @param _setNewPlatform The address of the platform authorized for special operations.
-     * @param _domain         The domain name for EIP712.
-     * @param _version        The contract version for EIP712.
-     */
-    constructor(
-        address _setNewPlatform,
-        string memory _domain,
-        string memory _version
-    ) Ownable(msg.sender) EIP712(_domain, _version) {
-        setPlatform(_setNewPlatform);
+    constructor() Ownable(msg.sender) {
+        setPlatform(msg.sender);
     }
 
     /**
@@ -82,6 +69,13 @@ contract DataSharing is Delegation, MetaTransaction {
      * @param platform          The unique identifier (hashed) for the creditor.
      */
     event SetNewAddressPlatform(address indexed platform);
+
+    /**
+     * @notice Emitted when a debtor is registered through the plain addDebtor path.
+     * @param nik           The unique identifier (hashed) for the debtor.
+     * @param debtorAddress The Ethereum address assigned to the debtor.
+     */
+    event DebtorAdded(bytes32 indexed nik, address indexed debtorAddress);
 
     /**
      * @notice Emitted when a new creditor is added with supplemental metadata.
@@ -192,6 +186,7 @@ contract DataSharing is Delegation, MetaTransaction {
         address debtorAddress
     ) external onlyPlatform {
         _addDebtor(nik, debtorAddress);
+        emit DebtorAdded(nik, debtorAddress);
     }
 
     /**
@@ -278,22 +273,7 @@ contract DataSharing is Delegation, MetaTransaction {
     //                               Delegation
     // ------------------------------------------------------------------------
     /**
-     * @dev Requests a delegation from one creditor (consumer) to another (provider) for a debtor (NIK).
-     * @param nik      The unique identifier (hashed) of the debtor.
-     * @param consumer The code (hashed) of the creditor acting as consumer.
-     * @param provider The code (hashed) of the creditor acting as provider.
-     * @notice Reverts if the caller is not the consumer or if an identical request is already pending.
-     */
-    // function requestDelegation(
-    //     bytes32 nik,
-    //     bytes32 consumer,
-    //     bytes32 provider
-    // ) external onlyPlatform {
-    //     _requestDelegation(nik, consumer, provider);
-    // }
-
-    /**
-     * @dev Overloaded version that also emits additional metadata for the delegation request.
+     * @dev Approves a delegation and emits additional metadata for the relationship.
      * @param nik          The unique identifier (hashed) of the debtor.
      * @param consumer    The code (hashed) of the creditor acting as consumer.
      * @param provider    The code (hashed) of the creditor acting as provider.
@@ -311,8 +291,7 @@ contract DataSharing is Delegation, MetaTransaction {
         string memory referenceId,
         string memory requestDate
     ) external onlyPlatform {
-        // _requestDelegation(nik, consumer, provider);
-        _delegate(nik, consumer, provider, Status.APPROVED);
+        _delegate(nik, consumer, provider);
         emit DelegationMetadata(
             nik,
             requestId,
@@ -325,18 +304,18 @@ contract DataSharing is Delegation, MetaTransaction {
     }
 
     /**
-     * @dev Allows a provider to approve or reject a delegation request.
+     * @dev Approves a delegation relationship.
      * @param nik      The unique identifier (hashed) of the debtor.
      * @param consumer The code (hashed) of the creditor acting as consumer.
      * @param provider The code (hashed) of the creditor acting as provider.
-     * @notice Reverts if the caller is not the provider or if the request is not pending.
+     * @notice Reverts if the provider is not already approved for the debtor or the delegation already exists.
      */
     function delegate(
         bytes32 nik,
         bytes32 consumer,
         bytes32 provider
     ) external onlyPlatform {
-        _delegate(nik, consumer, provider, Status.APPROVED);
+        _delegate(nik, consumer, provider);
     }
 
     /**
@@ -380,10 +359,10 @@ contract DataSharing is Delegation, MetaTransaction {
         bytes32 nik,
         bytes32 consumer,
         bytes32 provider,
-        string memory metadta
+        string memory metadata
     ) external onlyPlatform {
         _processAction(nik, consumer, provider);
-        emit ProcessAction(nik, consumer, provider, metadta);
+        emit ProcessAction(nik, consumer, provider, metadata);
     }
 
     /**
@@ -414,19 +393,6 @@ contract DataSharing is Delegation, MetaTransaction {
         return _getActiveCreditors(nik);
     }
 
-    /**
-     * @dev Retrieves the status of a specific creditor for a given debtor status (APPROVED, REJECTED, or PENDING).
-     * @param nik      The unique identifier (hashed) for the debtor.
-     * @param creditor The unique identifier (hashed) for the creditor.
-     * @return status  An status from request delegation.
-     */
-    // function getStatusRequest(
-    //     bytes32 nik,
-    //     bytes32 creditor
-    // ) external view returns (Status) {
-    //     return _getStatusRequest(nik, creditor);
-    // }
-
     // ------------------------------------------------------------------------
     //                              Purchases
     // ------------------------------------------------------------------------
@@ -450,7 +416,7 @@ contract DataSharing is Delegation, MetaTransaction {
         string memory startDate,
         string memory endDate,
         uint256 quota
-    ) external {
+    ) external onlyPlatform {
         // Emit event without storing data on-chain
         emit PackagePurchased(
             institutionCode,
@@ -478,27 +444,51 @@ contract DataSharing is Delegation, MetaTransaction {
         emit SetNewAddressPlatform(setNewPlatform);
     }
 
-    // ------------------------------------------------------------------------
-    //                             EIP712 Functions
-    // ------------------------------------------------------------------------
+    // ------------------------------------------------------------------
+    //  MetaTransaction Implementation
+    // ------------------------------------------------------------------
+
+    /// @dev EIP-712 domain name and version for meta-transaction verification.
+    function _domainNameAndVersion()
+        internal
+        view
+        virtual
+        override
+        returns (string memory name, string memory version)
+    {
+        name = "Data-Sharing-MetaTransaction";
+        version = "1.0";
+    }
+
     /**
-     * @dev This function is used to execute a meta transaction.
-     * @param from         The sender of the meta transaction.
-     * @param nonce        The nonce associated with the meta transaction.
-     * @param functionCall The function call associated with the meta transaction.
-     * @param signature    The signature of the meta transaction.
-     *
-     * @notice This function uses the `verify` function from the `EIP712` library to verify the signature.
-     *         It is a public function that can be called by any address.
-     *         It takes in four parameters: the sender, nonce, function call, and signature.
-     *         It emits a `MetaTransactionExecuted` event.
+     * @notice Executes a meta-transaction on behalf of `from` after validating
+     *         the EIP-712 signature and nonce.
+     * @param from         The original signer whose intent is being relayed.
+     * @param nonce        Must match the current nonce for `from`.
+     * @param functionCall ABI-encoded function call to execute on this contract.
+     * @param signature    EIP-712 signature produced by `from` over the payload.
      */
     function executeMetaTransaction(
         address from,
         uint256 nonce,
         bytes calldata functionCall,
         bytes calldata signature
-    ) external onlyPlatform {
+    ) external {
         _executeMetaTransaction(from, nonce, functionCall, signature);
+    }
+
+    /**
+     * @notice Returns the actual sender of the transaction, supporting meta-transactions
+     * @dev Overrides both MetaTransaction and Context versions to prioritize meta-transaction logic.
+     *      This enables gasless transactions where a relayer can submit transactions on behalf of users.
+     * @return sender The actual transaction sender (may differ from msg.sender in meta-transactions)
+     */
+    function _msgSender()
+        internal
+        view
+        override(MetaTransaction, Context)
+        returns (address sender)
+    {
+        return MetaTransaction._msgSender();
     }
 }

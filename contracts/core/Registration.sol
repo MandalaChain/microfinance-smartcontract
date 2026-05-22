@@ -16,7 +16,7 @@
  * @custom:error InvalidAddress - Thrown when an invalid address is provided.
  * @custom:error InvalidHash - Thrown when an invalid identifier hash is provided.
  */
-pragma solidity ^0.8.20;
+pragma solidity 0.8.28;
 
 /**
  * @title Registration
@@ -41,7 +41,7 @@ abstract contract Registration {
      * @return The address of the registered creditor.
      * @notice Reverts with `NotEligible` if the creditor is not found.
      */
-    function _isCreditor(bytes32 _creditorCode) internal view returns (address){
+    function _isCreditor(bytes32 _creditorCode) internal view returns (address) {
         address _creditor = _creditors[_creditorCode];
         if (_creditor == address(0)) revert NotEligible();
         return _creditor;
@@ -91,7 +91,15 @@ abstract contract Registration {
      */
     function _removeDebtor(bytes32 _nik) internal {
         if (_nik == bytes32(0)) revert InvalidHash();
-        if (_debtors[_nik] == address(0)) revert AlreadyRemoved();
+        address debtorAddress = _debtors[_nik];
+        if (debtorAddress == address(0)) revert AlreadyRemoved();
+        _beforeRemoveDebtor(_nik, debtorAddress);
         delete _debtors[_nik];
     }
+
+    /**
+     * @dev Hook for derived contracts to clear debtor-scoped storage before
+     *      the debtor registry entry is deleted.
+     */
+    function _beforeRemoveDebtor(bytes32, address) internal virtual {}
 }
